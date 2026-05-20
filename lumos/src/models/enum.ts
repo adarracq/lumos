@@ -1,0 +1,11 @@
+export enum ExerciseType {
+  SOLO = 'SOLO',
+  SOCIAL = 'SOCIAL'
+}
+
+export enum EveningRitual {
+  GRATITUDE = 'GRATITUDE',
+  JOURNALING = 'JOURNALING',
+  RESPIRATION = 'RESPIRATION',
+  VISUALISATION = 'VISUALISATION'
+}
