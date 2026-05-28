@@ -1,4 +1,5 @@
 import { feedbackService } from '@/src/services/feedbackService';
+import { useUserStore } from '@/src/store/useUserStore';
 import { Flame, RefreshCw, Shield, Swords, TrendingUp } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -36,6 +37,7 @@ type Difficulty = 'warmup' | 'progression' | 'hardcore' | null;
 export const SocialDojoModal = ({ isVisible, onClose }: SocialDojoModalProps) => {
     const [difficulty, setDifficulty] = useState<Difficulty>(null);
     const [currentChallenge, setCurrentChallenge] = useState<any>(null);
+    const trackToolUsage = useUserStore(state => state.trackToolUsage);
 
     const generateChallenge = (level: Difficulty) => {
         if (!level) return;
@@ -48,6 +50,7 @@ export const SocialDojoModal = ({ isVisible, onClose }: SocialDojoModalProps) =>
     const handleResetAndClose = () => {
         setDifficulty(null);
         setCurrentChallenge(null);
+        trackToolUsage('dojo');
         onClose();
     };
 
@@ -64,7 +67,7 @@ export const SocialDojoModal = ({ isVisible, onClose }: SocialDojoModalProps) =>
         <BaseBottomSheetModal
             isVisible={isVisible}
             onClose={onClose}
-            title="Dojo Social"
+            title="Défis sociaux"
         >
 
             {!currentChallenge ? (

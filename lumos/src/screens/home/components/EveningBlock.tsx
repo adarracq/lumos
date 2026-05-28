@@ -2,7 +2,7 @@
 import { LumosButton } from '@/src/components/atoms/LumosButton';
 import { BodyText } from '@/src/components/atoms/Typography';
 import { BaseBottomSheetModal } from '@/src/components/molecules/BaseBottomSheet';
-import { FocusTimerModal } from '@/src/components/organisms/FocusTimerModal';
+import { BreathingModal } from '@/src/components/organisms/BreathingModal';
 import { JournalModal } from '@/src/components/organisms/JournalModal';
 import { Colors } from '@/src/constants/Colors';
 import { XP_REWARDS } from '@/src/constants/Rewards';
@@ -63,7 +63,7 @@ export const EveningBlock = ({ theme, eveningRitual, solo, social }: EveningBloc
 
     useEffect(() => {
         const hour = new Date().getHours();
-        setIsEvening(hour >= 11 || hour <= 2);
+        setIsEvening(hour >= 16 || hour <= 2);
     }, []);
 
     const mainTask = tasks.find(t => t.id === mainTaskId);
@@ -301,7 +301,7 @@ ${eveningReviewDraft.gratitude.trim()}`;
                     onChangeText={(text) => updateEveningDraft({ pride: text })}
                 />
 
-                <Text style={styles.reviewQuestion}>Une chose pour laquelle tu as de la gratitude ?</Text>
+                <Text style={styles.reviewQuestion}>Une chose ou une personne pour laquelle tu as de la gratitude ?</Text>
                 <TextInput
                     style={styles.gratitudeInput} placeholder="Écris ta gratitude..."
                     placeholderTextColor={Colors.textMuted} value={eveningReviewDraft.gratitude} multiline textAlignVertical="top"
@@ -317,7 +317,7 @@ ${eveningReviewDraft.gratitude.trim()}`;
             </BaseBottomSheetModal>
 
             {/* Modales du Rituel */}
-            <FocusTimerModal isVisible={isTimerVisible} onClose={() => setIsTimerVisible(false)} onComplete={() => { setIsTimerVisible(false); completeEveningRitual(); }} />
+            <BreathingModal isVisible={isTimerVisible} onClose={() => setIsTimerVisible(false)} onComplete={() => { setIsTimerVisible(false); completeEveningRitual(); }} />
             <JournalModal isVisible={isJournalVisible} title={eveningRitual.title} instruction={eveningRitual.description} onClose={() => setIsJournalVisible(false)} onComplete={() => { setIsJournalVisible(false); completeEveningRitual(); }} />
             <RitualDetailModal
                 isVisible={isRitualModalVisible}

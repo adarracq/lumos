@@ -8,6 +8,11 @@ interface ThemeLevels {
     social: number;
 }
 
+interface NotificationPrefs {
+    enabled: boolean;
+    time: string; // Format "HH:mm"
+}
+
 interface UserState {
     hasSeenOnboarding: boolean;
     lumens: number;
@@ -19,6 +24,9 @@ interface UserState {
     toolUsage: Record<string, number>;
     streakFreezes: number;
     morningRoutinePreferences: string[];
+    notifications: Record<'morning' | 'day' | 'evening', NotificationPrefs>;
+    highScores: Record<string, number>;
+    primalBreathRecord: number;
 
     setHasSeenOnboarding: (value: boolean) => void;
     setOnboardingDay: (day: number) => void;
@@ -32,6 +40,9 @@ interface UserState {
     addStreakFreeze: (amount: number) => void;
     useStreakFreeze: (amount: number) => void;
     setMorningRoutinePreferences: (prefs: string[]) => void;
+    updateNotificationSetting: (type: 'morning' | 'day' | 'evening', setting: Partial<NotificationPrefs>) => void;
+    updateHighScore: (gameId: string, score: number) => void;
+    updatePrimalBreathRecord: (record: number) => void;
 }
 
 export const useUserStore = create<UserState>()(
@@ -46,7 +57,14 @@ export const useUserStore = create<UserState>()(
             isPremium: false,
             toolUsage: {},
             streakFreezes: 1,
-            morningRoutinePreferences: ['water', 'mantra', 'stretching', 'focus', 'smile', 'task'],
+            morningRoutinePreferences: ['water', 'bed', 'mantra', 'stretching', 'breathing', 'smile', 'task', 'shower'],
+            notifications: {
+                morning: { enabled: true, time: '08:00' },
+                day: { enabled: false, time: '10:00' },
+                evening: { enabled: true, time: '21:00' },
+            },
+            highScores: {},
+            primalBreathRecord: 0,
 
             setHasSeenOnboarding: (value) => set({ hasSeenOnboarding: value }),
             setOnboardingDay: (day) => set({ onboardingDay: day }),
@@ -87,6 +105,28 @@ export const useUserStore = create<UserState>()(
                 streakFreezes: Math.max(0, state.streakFreezes - amount)
             })),
             setMorningRoutinePreferences: (prefs) => set({ morningRoutinePreferences: prefs }),
+            updateNotificationSetting: (type, setting) => set((state) => ({
+                notifications: {
+                    ...state.notifications,
+                    [type]: { ...state.notifications[type], ...setting }
+                }
+            })),
+            updateHighScore: (gameId, score) => set((state) => {
+                const currentHighScore = state.highScores[gameId] || 0;
+                // On met à jour uniquement si le nouveau score est strictement supérieur
+                if (score > currentHighScore) {
+                    return {
+                        highScores: {
+                            ...state.highScores,
+                            [gameId]: score
+                        }
+                    };
+                }
+                return state; // Rien ne change
+            }),
+            updatePrimalBreathRecord: (record) => set((state) => ({
+                primalBreathRecord: record > state.primalBreathRecord ? record : state.primalBreathRecord
+            })),
         }),
         {
             name: 'lumos-user-storage',

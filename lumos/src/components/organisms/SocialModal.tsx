@@ -75,7 +75,7 @@ export const SocialModal = ({ isVisible, onClose }: SocialModalProps) => {
         <BaseBottomSheetModal
             isVisible={isVisible}
             onClose={onClose}
-            title="Briser la Glace"
+            title="Briseur de Glace"
         >
             {/* SÉLECTEUR D'ONGLETS (Segmented Control) */}
             <View style={styles.tabContainer}>

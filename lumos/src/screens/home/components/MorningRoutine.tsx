@@ -1,38 +1,66 @@
 import { BaseBottomSheetModal } from '@/src/components/molecules/BaseBottomSheet';
-import { FocusTimerModal } from '@/src/components/organisms/FocusTimerModal';
+import { BreathingModal } from '@/src/components/organisms/BreathingModal';
 import { SelectTaskModal } from '@/src/components/organisms/SelectTaskModal';
 import { StretchingModal } from '@/src/components/organisms/StretchingModal';
 import { Colors } from '@/src/constants/Colors';
+import { XP_REWARDS } from '@/src/constants/Rewards';
 import { feedbackService } from '@/src/services/feedbackService';
 import { useDailyStore } from '@/src/store/useDailyStore';
 import { useUserStore } from '@/src/store/useUserStore';
-import { Activity, Check, CheckCircle2, Droplet, Quote, Settings2, Smile, Target, Wind } from 'lucide-react-native';
-import React, { useState } from 'react';
+import { useNetInfo } from '@react-native-community/netinfo'; // 👈 Import de NetInfo
+import { Activity, BedDouble, Check, CheckCircle2, Droplet, Plane, Quote, Settings2, ShowerHead, Smile, Sunrise, Target, Wind } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const ALL_STEPS_CONFIG = [
     { id: 'water', icon: Droplet, title: "Hydratation", desc: "Boire un grand verre d'eau" },
+    { id: 'bed', icon: BedDouble, title: "Faire son lit", desc: "Un geste simple pour commencer" },
     { id: 'mantra', icon: Quote, title: "Mantra du jour", desc: "Répéter 5 fois à voix haute" },
-    { id: 'stretching', icon: Activity, title: "Éveil corporel", desc: "2 min d'étirements légers" },
-    { id: 'focus', icon: Wind, title: "Concentration", desc: "Respiration ou contemplation" },
+    { id: 'stretching', icon: Activity, title: "Éveil corporel", desc: "Étirements légers" },
+    { id: 'breathing', icon: Wind, title: "Respiration", desc: "Apaiser votre système nerveux" },
     { id: 'smile', icon: Smile, title: "Ancrage positif", desc: "Sourire dans un miroir" },
+    { id: 'shower', icon: ShowerHead, title: "Douche froide", desc: "Revigore le corps et l'esprit" },
     { id: 'task', icon: Target, title: "Priorité", desc: "Définir l'objectif du jour" }
 ];
 
 export const MorningRoutine = ({ mantra }: { mantra: string }) => {
-    const { morningRoutine, toggleMorningStep } = useDailyStore();
+    const { morningRoutine, toggleMorningStep, morningFocusCompleted, completeMorningFocus } = useDailyStore();
     const { morningRoutinePreferences, setMorningRoutinePreferences } = useUserStore();
 
     const [isTaskModalVisible, setIsTaskModalVisible] = useState(false);
-    const [timerTarget, setTimerTarget] = useState<'focus' | 'stretching' | null>(null);
+    const [isBreathingModalVisible, setIsBreathingModalVisible] = useState(false);
     const [isStretchingModalVisible, setStretchingModalVisible] = useState(false);
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+
+    // 👈 Détection automatique de la connexion
+    const netInfo = useNetInfo();
+    const isOffline = netInfo.isConnected === false;
+
+    // Détermination des étapes actives
+    const activeSteps = ALL_STEPS_CONFIG.filter(step => morningRoutinePreferences.includes(step.id));
+
+    // 👈 LOGIQUE D'AUTOMATISATION
+    useEffect(() => {
+        if (activeSteps.length > 0 && !morningFocusCompleted) {
+            // On vérifie si TOUTES les étapes actives sont à `true` dans `morningRoutine`
+            const isAllCompleted = activeSteps.every(step => morningRoutine[step.id as keyof typeof morningRoutine]);
+
+            if (isAllCompleted) {
+                // Petit délai pour laisser l'animation de la dernière case se faire
+                setTimeout(() => {
+                    completeMorningFocus(isOffline);
+                    feedbackService.success(true);
+                }, 500);
+            }
+        }
+    }, [morningRoutine, activeSteps, morningFocusCompleted, isOffline, completeMorningFocus]);
+
 
     const handleStepAction = (id: string) => {
         if (id === 'stretching') {
             !morningRoutine.stretching ? setStretchingModalVisible(true) : toggleMorningStep('stretching');
-        } else if (id === 'focus') {
-            morningRoutine.focus ? toggleMorningStep('focus') : setTimerTarget('focus');
+        } else if (id === 'breathing') {
+            morningRoutine.breathing ? toggleMorningStep('breathing') : setIsBreathingModalVisible(true);
         } else if (id === 'task') {
             setIsTaskModalVisible(true);
         } else {
@@ -65,8 +93,6 @@ export const MorningRoutine = ({ mantra }: { mantra: string }) => {
         );
     };
 
-    const activeSteps = ALL_STEPS_CONFIG.filter(step => morningRoutinePreferences.includes(step.id));
-
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -76,28 +102,67 @@ export const MorningRoutine = ({ mantra }: { mantra: string }) => {
                 </TouchableOpacity>
             </View>
 
+            {/* Badge incitatif / confirmant le Mode Avion */}
+            {!morningFocusCompleted && activeSteps.length > 0 && (
+                <View style={[styles.offlineBadge, !isOffline && styles.offlineBadgeInactive]}>
+                    <Plane color={isOffline ? Colors.primary : Colors.textMuted} size={14} />
+                    <Text style={[styles.offlineBadgeText, !isOffline && styles.offlineBadgeTextInactive]}>
+                        {isOffline
+                            ? `Mode Déconnexion : Bonus +${XP_REWARDS.AIRPLANE_BONUS} XP actif`
+                            : `Activez le mode avion pour +${XP_REWARDS.AIRPLANE_BONUS} XP bonus`}
+                    </Text>
+                </View>
+            )}
             <View style={styles.grid}>
                 {activeSteps.length === 0 ? (
                     <Text style={styles.emptyText}>Votre routine est vide. Cliquez sur l'icône de réglages pour l'assembler.</Text>
-                ) : (
+                ) : !morningFocusCompleted && (
                     activeSteps.map(step => <ActionTile key={step.id} {...step} />)
                 )}
             </View>
 
-            {/* MODALE D'ÉDITION */}
+            {/* Message de succès une fois tout complété */}
+            {morningFocusCompleted && activeSteps.length > 0 && (
+                <View style={styles.completedCard}>
+                    {/* Icône de fond décorative */}
+                    <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+                        <Sunrise
+                            color={Colors.primary}
+                            size={120}
+                            style={styles.completedBgIcon}
+                            opacity={0.04}
+                        />
+                    </View>
+
+                    <View style={styles.completedHeader}>
+                        <View style={styles.completedBadge}>
+                            <CheckCircle2 color={Colors.primary} size={14} />
+                            <Text style={styles.completedBadgeText}>MATINÉE ACCOMPLIE</Text>
+                        </View>
+                    </View>
+
+                    <Text style={styles.completedTitle}>
+                        La journée t'appartient.
+                    </Text>
+
+                    <View style={styles.completedFooter}>
+                        <Text style={styles.completedFooterText}>
+                            Ton esprit est clair et ton corps est réveillé. Utilise cette dynamique pour relever tes prochains défis avec calme et détermination.
+                        </Text>
+                    </View>
+                </View>
+            )}
+
+            {/* MODALE D'ÉDITION (inchangée) */}
             <BaseBottomSheetModal
                 isVisible={isEditModalVisible}
                 onClose={() => setIsEditModalVisible(false)}
                 title="Personnaliser"
             >
-
                 <Text style={styles.modalSubtitle}>Sélectionnez les étapes de votre matinée idéale.</Text>
-
                 <View style={styles.listContainer}>
                     {ALL_STEPS_CONFIG.map(step => {
                         const isSelected = morningRoutinePreferences.includes(step.id);
-
-                        // Couleurs dynamiques basées sur TaskItem & HabitItem
                         const rowBorderColor = isSelected ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.02)';
                         const rowBgColor = isSelected ? 'rgba(30, 30, 30, 0.5)' : 'rgba(20, 20, 20, 0.3)';
 
@@ -116,8 +181,6 @@ export const MorningRoutine = ({ mantra }: { mantra: string }) => {
                                         {step.title}
                                     </Text>
                                 </View>
-
-                                {/* Checkbox "Squircle" fidèle au TaskItem */}
                                 <View style={[styles.checkbox, isSelected && styles.checkboxCompleted]}>
                                     {isSelected && <Check size={14} color={Colors.background} strokeWidth={4} />}
                                 </View>
@@ -127,9 +190,20 @@ export const MorningRoutine = ({ mantra }: { mantra: string }) => {
                 </View>
             </BaseBottomSheetModal>
 
-            <FocusTimerModal isVisible={timerTarget !== null} onClose={() => setTimerTarget(null)} onComplete={() => { if (timerTarget) toggleMorningStep(timerTarget); setTimerTarget(null); }} />
-            <SelectTaskModal isVisible={isTaskModalVisible} onClose={() => setIsTaskModalVisible(false)} />
-            <StretchingModal isVisible={isStretchingModalVisible} onClose={() => setStretchingModalVisible(false)} onComplete={() => { if (!morningRoutine.stretching) toggleMorningStep('stretching'); }} />
+            <BreathingModal
+                isVisible={isBreathingModalVisible}
+                onClose={() => setIsBreathingModalVisible(false)}
+                onComplete={() => { toggleMorningStep('breathing'); setIsBreathingModalVisible(false); }}
+            />
+            <SelectTaskModal
+                isVisible={isTaskModalVisible}
+                onClose={() => setIsTaskModalVisible(false)}
+            />
+            <StretchingModal
+                isVisible={isStretchingModalVisible}
+                onClose={() => setStretchingModalVisible(false)}
+                onComplete={() => { if (!morningRoutine.stretching) toggleMorningStep('stretching'); }}
+            />
         </View>
     );
 };
@@ -194,4 +268,160 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.primary,
         borderColor: Colors.primary
     },
+    validationContainer: {
+        marginTop: 24,
+        paddingTop: 20,
+        borderTopWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.05)',
+        gap: 15
+    },
+    airplaneToggle: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        padding: 14,
+        backgroundColor: 'rgba(255, 255, 255, 0.02)',
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.05)'
+    },
+    airplaneCheckbox: {
+        width: 20,
+        height: 20,
+        borderRadius: 6,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    airplaneCheckboxActive: {
+        backgroundColor: Colors.primary,
+        borderColor: Colors.primary
+    },
+    airplaneText: {
+        color: Colors.textMuted,
+        fontSize: 13,
+        fontFamily: 'InterRegular',
+        flex: 1,
+        lineHeight: 18
+    },
+    airplaneTextActive: {
+        color: Colors.text,
+        fontFamily: 'PoppinsMedium'
+    },
+    validateBtn: {
+        backgroundColor: Colors.primary,
+        paddingVertical: 16,
+        borderRadius: 16,
+        alignItems: 'center',
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+    },
+    validateBtnText: {
+        color: Colors.background,
+        fontSize: 15,
+        fontFamily: 'PoppinsBold'
+    },
+    offlineBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(212, 175, 55, 0.1)',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 12,
+        marginBottom: 15,
+        gap: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(212, 175, 55, 0.2)'
+    },
+    offlineBadgeText: {
+        color: Colors.primary,
+        fontSize: 12,
+        fontFamily: 'PoppinsSemiBold'
+    },
+
+    offlineBadgeInactive: {
+        backgroundColor: 'rgba(255, 255, 255, 0.02)',
+        borderColor: 'rgba(255, 255, 255, 0.05)'
+    },
+    offlineBadgeTextInactive: {
+        color: Colors.textMuted,
+        fontFamily: 'InterRegular' // Police plus standard pour contraster avec le gras de l'activation
+    },
+    completedContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        marginTop: 15,
+        padding: 12,
+        backgroundColor: 'rgba(212, 175, 55, 0.05)',
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(212, 175, 55, 0.2)'
+    },
+    completedText: {
+        color: Colors.primary,
+        fontSize: 13,
+        fontFamily: 'PoppinsSemiBold'
+    },
+    // NOUVEAU STYLE DE LA MATINÉE ACCOMPLIE
+    completedCard: {
+        backgroundColor: 'rgba(212, 175, 55, 0.03)',
+        borderRadius: 20,
+        padding: 20,
+        marginTop: 15,
+        borderWidth: 1,
+        borderColor: 'rgba(212, 175, 55, 0.2)',
+        position: 'relative',
+        overflow: 'hidden',
+    },
+    completedBgIcon: {
+        position: 'absolute',
+        top: -15,
+        right: -20,
+        transform: [{ rotate: '-10deg' }]
+    },
+    completedHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    completedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(212, 175, 55, 0.1)',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 12,
+        gap: 6
+    },
+    completedBadgeText: {
+        color: Colors.primary,
+        fontSize: 10,
+        fontFamily: 'PoppinsBold',
+        letterSpacing: 0.5,
+        textTransform: 'uppercase'
+    },
+    completedTitle: {
+        color: Colors.text,
+        fontSize: 16,
+        fontFamily: 'PoppinsMedium',
+        lineHeight: 24,
+        marginBottom: 16
+    },
+    completedFooter: {
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(212, 175, 55, 0.1)',
+        paddingTop: 16,
+    },
+    completedFooterText: {
+        color: Colors.textMuted,
+        fontSize: 13,
+        fontFamily: 'InterMedium',
+        lineHeight: 20
+    }
 });

@@ -45,16 +45,16 @@ export const useTaskStore = create<TaskState>()(
                 let completedDiff = 0;
 
                 if (task) {
-                    if (!task.isCompleted) {
-                        let xp = XP_REWARDS.TASK_NORMAL;
-                        if (task.isUrgent && task.isImportant) xp = XP_REWARDS.TASK_URGENT_IMPORTANT;
-                        else if (task.isUrgent) xp = XP_REWARDS.TASK_URGENT;
-                        else if (task.isImportant) xp = XP_REWARDS.TASK_IMPORTANT;
+                    let xp = XP_REWARDS.TASK_NORMAL;
+                    if (task.isUrgent && task.isImportant) xp = XP_REWARDS.TASK_URGENT_IMPORTANT;
+                    else if (task.isUrgent) xp = XP_REWARDS.TASK_URGENT;
+                    else if (task.isImportant) xp = XP_REWARDS.TASK_IMPORTANT;
 
+                    if (!task.isCompleted) {
                         grantXP(xp);
                         completedDiff = 1; // +1 tâche complétée
                     } else {
-                        grantXP(-XP_REWARDS.TASK_NORMAL);
+                        grantXP(-xp);
                         completedDiff = -1; // -1 tâche (si on annule)
                     }
                 }

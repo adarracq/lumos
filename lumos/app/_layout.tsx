@@ -7,8 +7,9 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
+import Purchases, { LOG_LEVEL } from 'react-native-purchases';
 
-// Empêche le splash screen de disparaître automatiquement
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -23,19 +24,66 @@ export default function RootLayout() {
     if (loaded || error) {
       SplashScreen.hideAsync();
 
+      const setupRevenueCat = async () => {
+        Purchases.setLogLevel(LOG_LEVEL.VERBOSE);
+
+        const iosApiKey = 'test_jkYeIEIezOOTSMUKritfDLrRiPf';
+        const androidApiKey = 'goog_QksPQPWLjiNcPkgKBeQTNzIoJUO';
+
+        if (Platform.OS === 'ios') {
+          await Purchases.configure({ apiKey: iosApiKey });
+        } else if (Platform.OS === 'android') {
+          await Purchases.configure({ apiKey: androidApiKey });
+        }
+
+        // 👇 NOUVEAU : On vérifie le statut réel au démarrage
+        try {
+          const customerInfo = await Purchases.getCustomerInfo();
+          const { useUserStore } = require('@/src/store/useUserStore');
+          const setPremium = useUserStore.getState().setPremium;
+
+          // On vérifie si l'utilisateur possède l'accès 'lumos-premium'
+          if (typeof customerInfo.entitlements.active['lumos-premium'] !== "undefined") {
+            setPremium(true); // L'abonnement est valide
+          } else {
+            setPremium(false); // L'abonnement a expiré ou n'a jamais existé
+          }
+        } catch (e) {
+          console.error("Erreur de vérification RevenueCat au démarrage", e);
+        }
+
+        // Optionnel mais recommandé : Écouter les changements en temps réel (ex: renouvellement en arrière-plan)
+        Purchases.addCustomerInfoUpdateListener((info) => {
+          const { useUserStore } = require('@/src/store/useUserStore');
+          const setPremium = useUserStore.getState().setPremium;
+
+          if (typeof info.entitlements.active['lumos-premium'] !== "undefined") {
+            setPremium(true);
+          } else {
+            setPremium(false);
+          }
+        });
+      };
+
       const setupNotifications = async () => {
         const hasPermission = await notificationService.requestPermissions();
         if (hasPermission) {
-          await notificationService.scheduleEveningReview();
+          const { useUserStore } = require('@/src/store/useUserStore');
+          const { notifications } = useUserStore.getState();
+
+          if (notifications.morning.enabled) notificationService.scheduleMorningRoutine(notifications.morning.time);
+          if (notifications.day.enabled) notificationService.scheduleDayExercise(notifications.day.time);
+          if (notifications.evening.enabled) notificationService.scheduleEveningReview(notifications.evening.time);
         }
       };
 
+      setupRevenueCat();
       setupNotifications();
     }
   }, [loaded, error]);
 
   if (!loaded && !error) {
-    return null; // On ne rend rien tant que ce n'est pas prêt
+    return null;
   }
 
   return (

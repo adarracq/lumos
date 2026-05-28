@@ -1,3 +1,4 @@
+// src/store/useHabitStore.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
@@ -13,8 +14,9 @@ interface HabitState {
     addHabit: (habitData: Omit<Habit, 'id'>) => void;
     updateHabit: (id: string, habitData: Partial<Omit<Habit, 'id'>>) => void;
     deleteHabit: (id: string) => void;
-    toggleHabitCompletion: (habitId: string) => void;
-    progressHabit: (habitId: string, amount: number) => void;
+    // 💡 Ajout du paramètre optionnel dateKey
+    toggleHabitCompletion: (habitId: string, dateKey?: string) => void;
+    progressHabit: (habitId: string, amount: number, dateKey?: string) => void;
 }
 
 export const useHabitStore = create<HabitState>()(
@@ -43,7 +45,6 @@ export const useHabitStore = create<HabitState>()(
                 const currentHabit = habits[habitIndex];
                 const newHabit = { ...currentHabit, ...updatedData };
 
-                // 💡 Gérer les notifications en cas de changement
                 if (updatedData.reminderTime !== undefined || updatedData.name !== undefined) {
                     if (currentHabit.frequency) {
                         for (const day of currentHabit.frequency) {
@@ -76,25 +77,25 @@ export const useHabitStore = create<HabitState>()(
                 }));
             },
 
-            toggleHabitCompletion: (habitId) => {
-                const today = getLogicalTodayKey();
-                const todayLogs = get().logs[today] || {};
-                const isCompleted = !!todayLogs[habitId];
+            toggleHabitCompletion: (habitId, dateKey) => {
+                const targetDate = dateKey || getLogicalTodayKey(); // 💡 Utilise la date fournie ou aujourd'hui
+                const dayLogs = get().logs[targetDate] || {};
+                const isCompleted = !!dayLogs[habitId];
 
                 grantXP(isCompleted ? -XP_REWARDS.HABIT_COMPLETED : XP_REWARDS.HABIT_COMPLETED);
 
                 set((state) => ({
-                    logs: { ...state.logs, [today]: { ...todayLogs, [habitId]: !isCompleted } },
+                    logs: { ...state.logs, [targetDate]: { ...dayLogs, [habitId]: !isCompleted } },
                 }));
             },
 
-            progressHabit: (habitId, amount) => {
-                const today = getLogicalTodayKey();
+            progressHabit: (habitId, amount, dateKey) => {
+                const targetDate = dateKey || getLogicalTodayKey(); // 💡 Pareil ici
                 const habit = get().habits.find(h => h.id === habitId);
                 if (!habit || !habit.targetValue) return;
 
-                const todayLogs = get().logs[today] || {};
-                const currentValue = (todayLogs[habitId] as number) || 0;
+                const dayLogs = get().logs[targetDate] || {};
+                const currentValue = (dayLogs[habitId] as number) || 0;
                 const newValue = Math.min(currentValue + amount, habit.targetValue);
 
                 if (currentValue < habit.targetValue && newValue >= habit.targetValue) {
@@ -102,7 +103,7 @@ export const useHabitStore = create<HabitState>()(
                 }
 
                 set((state) => ({
-                    logs: { ...state.logs, [today]: { ...todayLogs, [habitId]: newValue } },
+                    logs: { ...state.logs, [targetDate]: { ...dayLogs, [habitId]: newValue } },
                 }));
             }
         }),

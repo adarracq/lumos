@@ -61,7 +61,6 @@ export const TaskItem = ({ task, onToggle, onDelete }: TaskItemProps) => {
 };
 
 const styles = StyleSheet.create({
-    // Même base que HabitItem.tsx
     glassCardContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -70,12 +69,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         paddingVertical: 14,
         paddingHorizontal: 16,
-        // Ombre légère pour détacher la carte du fond
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 10,
-        elevation: 3,
     },
     checkbox: {
         width: 26,

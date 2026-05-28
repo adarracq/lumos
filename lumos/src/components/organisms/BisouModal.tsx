@@ -1,4 +1,5 @@
 import { feedbackService } from '@/src/services/feedbackService';
+import { useUserStore } from '@/src/store/useUserStore';
 import { Check, Clock, Copy, MapPin, ShoppingBag, Wrench } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -47,10 +48,14 @@ const BISOU_STEPS = [
 
 export const BisouModal = ({ isVisible, onClose }: BisouModalProps) => {
     const [currentStep, setCurrentStep] = useState(0);
+    const trackToolUsage = useUserStore(state => state.trackToolUsage);
 
     const handleNext = () => {
         if (currentStep < BISOU_STEPS.length) {
             setCurrentStep(prev => prev + 1);
+        }
+        if (currentStep === BISOU_STEPS.length - 1) {
+            trackToolUsage('bisou');
         }
     };
 
@@ -67,7 +72,7 @@ export const BisouModal = ({ isVisible, onClose }: BisouModalProps) => {
         <BaseBottomSheetModal
             isVisible={isVisible}
             onClose={handleResetAndClose}
-            title="Filtre d'Acquisition"
+            title="Pulsion d'achat"
         >
 
             {isFinished ? (
@@ -147,8 +152,8 @@ const styles = StyleSheet.create({
     progressLetter: { fontSize: 24, fontFamily: 'PoppinsBold', color: Colors.surfaceLight, transition: 'all 0.3s ease' } as any,
 
     iconCircle: { width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center', borderWidth: 2, marginBottom: 20 },
-    questionText: { color: Colors.text, fontSize: 20, fontFamily: 'PoppinsSemiBold', textAlign: 'center', marginBottom: 15 },
-    descText: { color: Colors.textMuted, textAlign: 'center', paddingHorizontal: 10, fontSize: 14, lineHeight: 22 },
+    questionText: { color: Colors.text, fontSize: 20, fontFamily: 'PoppinsSemiBold', textAlign: 'center', marginBottom: 15, minHeight: 60 },
+    descText: { color: Colors.textMuted, textAlign: 'center', paddingHorizontal: 10, fontSize: 14, lineHeight: 22, minHeight: 66 },
 
     nextBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 16, paddingHorizontal: 40, borderRadius: 30, marginTop: 'auto', marginBottom: 20 },
     nextBtnText: { color: Colors.background, fontSize: 18, fontWeight: 'bold' }

@@ -60,8 +60,7 @@ export const HabitTimerModal = ({ isVisible, habitName, remainingMinutes, color,
     // Quand le timer arrive naturellement à 0
     useEffect(() => {
         if (isVisible && timeLeft === 0 && elapsedSeconds > 0 && !isActive) {
-            feedbackService.success();
-            // 💡 MODIFICATION ICI : On enlève Math.floor pour renvoyer la fraction de minutes
+            feedbackService.success(true);
             const minutesDone = elapsedSeconds / 60;
             onComplete(minutesDone);
             onClose();

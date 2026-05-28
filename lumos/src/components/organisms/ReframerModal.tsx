@@ -1,9 +1,10 @@
 import { feedbackService } from '@/src/services/feedbackService';
+import { useUserStore } from '@/src/store/useUserStore';
 import { Brain, Eye, Filter, RefreshCcw, Search, ShieldAlert, Sparkles, UserCheck, Users, Zap } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/Colors';
-import { BodyText, Title } from '../atoms/Typography';
+import { Title } from '../atoms/Typography';
 import { BaseBottomSheetModal } from '../molecules/BaseBottomSheet';
 
 interface ReframerModalProps {
@@ -23,6 +24,7 @@ const BIASES = [
 
 export const ReframerModal = ({ isVisible, onClose }: ReframerModalProps) => {
     const [selectedBias, setSelectedBias] = useState<any>(null);
+    const trackToolUsage = useUserStore(state => state.trackToolUsage);
 
     const handleResetAndClose = () => {
         setSelectedBias(null);
@@ -41,9 +43,6 @@ export const ReframerModal = ({ isVisible, onClose }: ReframerModalProps) => {
 
             {!selectedBias ? (
                 <View style={{ flex: 1, marginTop: 10 }}>
-                    <BodyText style={{ marginBottom: 20 }}>
-                        Notre cerveau crée des "bugs" d'interprétation. Lequel te bloque en ce moment ?
-                    </BodyText>
 
                     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
                         {BIASES.map((bias) => (
@@ -117,9 +116,9 @@ const styles = StyleSheet.create({
     closeBtn: { backgroundColor: 'rgba(255,255,255,0.05)', padding: 6, borderRadius: 20 },
 
     // Glass Bias Card
-    glassBiasCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.03)', padding: 16, borderRadius: 16, marginBottom: 12, borderWidth: 1 },
+    glassBiasCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.03)', padding: 12, borderRadius: 16, marginBottom: 12, borderWidth: 1 },
     iconBg: { padding: 12, borderRadius: 12, marginRight: 15 },
-    biasTitle: { color: Colors.text, fontSize: 16, fontFamily: 'PoppinsSemiBold', marginBottom: 4 },
+    biasTitle: { color: Colors.text, fontSize: 16, fontFamily: 'PoppinsSemiBold', },
     biasDesc: { color: Colors.textMuted, fontSize: 13, lineHeight: 18 },
 
     // Écran 2

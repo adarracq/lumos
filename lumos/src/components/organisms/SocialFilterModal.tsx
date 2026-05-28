@@ -23,7 +23,7 @@ export const SocialFilterModal = ({ isVisible, onClose }: { isVisible: boolean, 
         <BaseBottomSheetModal
             isVisible={isVisible}
             onClose={onClose}
-            title="Mes Standards"
+            title="Filtres sociaux"
         >
 
             <View style={styles.glassMindsetBox}>

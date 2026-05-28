@@ -4,5 +4,5 @@ export interface Task {
     isUrgent: boolean;
     isImportant: boolean;
     isCompleted: boolean;
-    createdAt: number; // Timestamp
+    createdAt: number;
 }

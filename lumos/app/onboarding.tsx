@@ -1,7 +1,6 @@
+import { LumosButton } from '@/src/components/atoms/LumosButton';
 import { useRouter } from 'expo-router';
 import {
-    ArrowRight,
-    ChevronRight,
     ShieldCheck,
     Sparkles,
     Swords,
@@ -13,7 +12,6 @@ import {
     FlatList,
     StyleSheet,
     Text,
-    TouchableOpacity,
     useWindowDimensions,
     View
 } from 'react-native';
@@ -127,27 +125,21 @@ export default function OnboardingScreen() {
                         return (
                             <Animated.View
                                 key={i.toString()}
-                                style={[styles.dot, { width: dotWidth, opacity, backgroundColor: Colors.primary }]}
+                                style={[styles.dot, {
+                                    width: dotWidth,
+                                    opacity,
+                                    backgroundColor: currentIndex === i ? ONBOARDING_DATA[i].color : Colors.textMuted
+                                }]}
                             />
                         );
                     })}
                 </View>
-
-                {/* Bouton d'action dynamique */}
-                <TouchableOpacity
-                    style={[styles.button, currentIndex === ONBOARDING_DATA.length - 1 && styles.buttonLast]}
+                <LumosButton
+                    title={currentIndex === ONBOARDING_DATA.length - 1 ? 'Commencer' : 'Continuer'}
                     onPress={handleNext}
-                    activeOpacity={0.8}
-                >
-                    <Text style={styles.buttonText}>
-                        {currentIndex === ONBOARDING_DATA.length - 1 ? 'Commencer' : 'Continuer'}
-                    </Text>
-                    {currentIndex === ONBOARDING_DATA.length - 1 ? (
-                        <ArrowRight color={Colors.background} size={20} />
-                    ) : (
-                        <ChevronRight color={Colors.background} size={20} />
-                    )}
-                </TouchableOpacity>
+                    color={ONBOARDING_DATA[currentIndex].color}
+                    style={{ width: '80%' }}
+                />
             </View>
         </View>
     );
@@ -210,31 +202,5 @@ const styles = StyleSheet.create({
         height: 10,
         borderRadius: 5,
         marginHorizontal: 4,
-    },
-    button: {
-        flexDirection: 'row',
-        backgroundColor: Colors.primary,
-        paddingVertical: 16,
-        paddingHorizontal: 32,
-        borderRadius: 30,
-        alignItems: 'center',
-        gap: 10,
-    },
-    buttonLast: {
-        paddingHorizontal: 45,
-        backgroundColor: Colors.primary,
-        // Optionnel : donner un feedback visuel plus fort sur le dernier bouton
-        shadowColor: Colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-        elevation: 8,
-    },
-    buttonText: {
-        color: Colors.background,
-        fontSize: 16,
-        fontFamily: 'PoppinsBold',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
     },
 });

@@ -1,3 +1,4 @@
+import { useUserStore } from '@/src/store/useUserStore';
 import { CheckSquare, Square } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -20,6 +21,7 @@ const FLOW_CONDITIONS = [
 
 export const FlowTriggerModal = ({ isVisible, onClose }: FlowTriggerModalProps) => {
     const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({});
+    const trackToolUsage = useUserStore(state => state.trackToolUsage);
 
     const toggleCheck = (id: number) => {
         setCheckedItems(prev => ({ ...prev, [id]: !prev[id] }));
@@ -27,6 +29,7 @@ export const FlowTriggerModal = ({ isVisible, onClose }: FlowTriggerModalProps) 
 
     const handleResetAndClose = () => {
         setCheckedItems({});
+        trackToolUsage('flow');
         onClose();
     };
 

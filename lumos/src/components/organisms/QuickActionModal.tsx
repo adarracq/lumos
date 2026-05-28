@@ -1,6 +1,8 @@
 // src/components/organisms/QuickActionModal.tsx
 import { TOOLS_CATALOG } from '@/src/constants/Tools';
-import { CheckSquare, ChevronDown, ChevronRight, ChevronUp, Lock } from 'lucide-react-native';
+import { feedbackService } from '@/src/services/feedbackService';
+// 👇 Ajout de Flame et Trophy
+import { CheckSquare, ChevronDown, ChevronRight, ChevronUp, Lock, Repeat, Trophy } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/Colors';
@@ -16,16 +18,11 @@ export const QuickActionModal = () => {
     const { isQuickActionVisible, setQuickActionVisible, openModal } = useUIStore();
     const setAddModalVisible = useTaskStore((state) => state.setAddModalVisible);
 
-    // Ajout de isPremium pour vérifier les droits de l'utilisateur
-    const { toolUsage, trackToolUsage, isPremium } = useUserStore();
+    // 👇 Ajout de highScores ici
+    const { toolUsage, trackToolUsage, isPremium, highScores } = useUserStore();
 
     const [showAll, setShowAll] = useState(false);
-
-    // Nouvel état pour gérer l'affichage du Paywall
     const [isPaywallVisible, setPaywallVisible] = useState(false);
-
-    // On retire le "if (!isQuickActionVisible) return null;" prématuré
-    // pour que le composant puisse toujours rendre le PaywallModal si besoin.
 
     const topTools = [...TOOLS_CATALOG]
         .sort((a, b) => (toolUsage[b.id] || 0) - (toolUsage[a.id] || 0))
@@ -37,23 +34,25 @@ export const QuickActionModal = () => {
     };
 
     const handleOpenTool = (id: string) => {
-        trackToolUsage(id);
         setQuickActionVisible(false);
         setTimeout(() => openModal(id as ToolModalId), 300);
     };
 
     const ActionButton = ({ item }: any) => {
-        // 1. Logique de verrouillage Premium
         const isLocked = item.isPremiumFeature && !isPremium;
         const IconToUse = isLocked ? Lock : item.icon;
         const colorToUse = isLocked ? Colors.textMuted : item.color;
         const descToUse = isLocked ? "Fonctionnalité Premium" : item.desc;
 
+        // Récupération des stats pour ce bouton
+        const currentUsage = toolUsage[item.id] || 0;
+        const currentScore = highScores[item.id] || 0;
+        const isNeuroGame = item.category === 'neuro';
+
         const handlePress = () => {
-            // 2. Comportement au clic
+            feedbackService.light();
             if (isLocked) {
                 setQuickActionVisible(false);
-                // Léger délai pour laisser la modale d'action rapide se fermer proprement
                 setTimeout(() => setPaywallVisible(true), 300);
             } else if (item.id === 'exportData') {
                 setQuickActionVisible(false);
@@ -75,6 +74,22 @@ export const QuickActionModal = () => {
                     <Text style={styles.actionTitle}>{item.title}</Text>
                     <Text style={styles.actionDesc}>{descToUse}</Text>
                 </View>
+
+                {/* --- BADGES DISCRETS AVEC ICÔNES LUCIDE --- */}
+                <View style={styles.statsWrapper}>
+                    {isNeuroGame && currentScore > 0 && (
+                        <View style={[styles.badge, styles.scoreBadge]}>
+                            <Trophy color={Colors.primary} size={12} style={styles.badgeIcon} />
+                            <Text style={styles.scoreText}>{currentScore}</Text>
+                        </View>
+                    )}
+                    {!isNeuroGame && currentUsage > 0 && (
+                        <View style={[styles.badge, styles.usageBadge]}>
+                            <Repeat color={Colors.textMuted} size={12} style={styles.badgeIcon} />
+                            <Text style={styles.usageText}>{currentUsage}</Text>
+                        </View>
+                    )}
+                </View>
             </TouchableOpacity>
         );
     };
@@ -86,8 +101,6 @@ export const QuickActionModal = () => {
                 onClose={() => { setQuickActionVisible(false); setShowAll(false); }}
                 title="Action Rapide"
             >
-
-                {/* 1. TOUJOURS EN HAUT : LA TÂCHE (Design élégant) */}
                 <TouchableOpacity style={styles.primaryTaskBtn} onPress={handleOpenTask} activeOpacity={0.8}>
                     <View style={styles.primaryTaskIcon}>
                         <CheckSquare color={Colors.surface} size={24} />
@@ -99,7 +112,6 @@ export const QuickActionModal = () => {
                     <ChevronRight color={Colors.primary} size={20} />
                 </TouchableOpacity>
 
-                {/* 2. LES FAVORIS INTELLIGENTS */}
                 {!showAll && (
                     <>
                         <BodyText style={styles.sectionTitle}>Tes outils favoris</BodyText>
@@ -114,7 +126,6 @@ export const QuickActionModal = () => {
                     </>
                 )}
 
-                {/* 3. TOUS LES OUTILS (DÉPLIÉ 1 PAR LIGNE) */}
                 {showAll && (
                     <>
                         <TouchableOpacity style={styles.showAllBtn} onPress={() => setShowAll(false)}>
@@ -122,7 +133,7 @@ export const QuickActionModal = () => {
                             <ChevronUp color={Colors.textMuted} size={18} />
                         </TouchableOpacity>
 
-                        {['mental', 'focus', 'social', 'vision', 'archives'].map(category => {
+                        {['sos', 'focus', 'vision', 'neuro'].map(category => {
                             const categoryTools = TOOLS_CATALOG.filter(t => t.category === category);
                             if (categoryTools.length === 0) return null;
 
@@ -143,14 +154,12 @@ export const QuickActionModal = () => {
                 )}
             </BaseBottomSheetModal>
 
-            {/* LE PAYWALL EST HÉBERGÉ ICI POUR S'AFFICHER SANS CONFLIT */}
             <PaywallModal isVisible={isPaywallVisible} onClose={() => setPaywallVisible(false)} />
         </>
     );
 };
 
 const styles = StyleSheet.create({
-    // ... tes styles restent exactement les mêmes !
     primaryTaskBtn: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -178,4 +187,41 @@ const styles = StyleSheet.create({
 
     categoryTitle: { color: Colors.textMuted, fontFamily: 'PoppinsBold', fontSize: 12, textTransform: 'uppercase', marginBottom: 12, letterSpacing: 1 },
     categoryGrid: { gap: 12 },
+
+    // --- STYLES DES BADGES DISCRETS ---
+    statsWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginLeft: 8,
+        opacity: 0.5
+    },
+    badge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+        borderWidth: 1,
+    },
+    badgeIcon: {
+        marginRight: 4
+    },
+    usageBadge: {
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderColor: 'rgba(255,255,255,0.08)'
+    },
+    usageText: {
+        color: Colors.textMuted,
+        fontSize: 11,
+        fontFamily: 'PoppinsSemiBold'
+    },
+    scoreBadge: {
+        backgroundColor: 'rgba(212, 175, 55, 0.1)',
+        borderColor: 'rgba(212, 175, 55, 0.3)'
+    },
+    scoreText: {
+        color: Colors.primary,
+        fontSize: 11,
+        fontFamily: 'PoppinsBold'
+    },
 });

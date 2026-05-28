@@ -18,7 +18,7 @@ export const EXERCISES: ThemeContent[] = [
             { level: 5, action: "Faire le 'touriste' dans sa propre ville avec un ami : visiter un lieu jamais vu.", analysis: "Partager physiquement un état d'esprit de découverte et casser la routine sociale." }
         ],
         rituals: [
-            { level: 1, title: "Les 3 Kifs", family: "JOURNALING", description: "Note 3 petites choses belles, surprenantes ou agréables vues aujourd'hui." },
+            { level: 1, title: "Gratitude", family: "JOURNALING", description: "Note 3 petites choses belles, surprenantes ou agréables vues aujourd'hui." },
             { level: 2, title: "Respiration des 5 Sens", family: "BREATHING", durationMin: 3, description: "Inspire calmement en identifiant 5 choses que tu vois, 4 que tu touches, 3 que tu entends." }
         ]
     },
@@ -424,7 +424,7 @@ export const EXERCISES: ThemeContent[] = [
     {
         themeId: 21, // Intégration / Bilan
         solo: [
-            { level: 1, action: "Relire ses notes, kifs ou bilans des 20 derniers jours.", analysis: "Prendre conscience du chemin parcouru cristallise la progression dans l'esprit." },
+            { level: 1, action: "Relire ses notes et bilans des 20 derniers jours.", analysis: "Prendre conscience du chemin parcouru cristallise la progression dans l'esprit." },
             { level: 2, action: "Choisir UNE règle d'or ou UN mantra parmi les 20 jours pour en faire son credo de l'année.", analysis: "L'appropriation : vous n'êtes plus guidé, c'est à vous de choisir votre propre système de valeurs." },
             { level: 3, action: "Désencombrer entièrement un pan de sa vie (bureau physique, boîte mail, ou finances).", analysis: "Faire le vide massif pour accueillir le nouveau cycle avec clarté et légèreté." },
             { level: 4, action: "Planifier ses 3 prochains mois autour d'un seul objectif majeur, sans se disperser.", analysis: "Traduire la sagesse acquise en stratégie d'action concrète." },

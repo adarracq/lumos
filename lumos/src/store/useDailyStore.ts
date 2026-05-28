@@ -7,6 +7,7 @@ import { getLogicalTodayKey } from '../utils/dateUtils';
 import { grantXP } from '../utils/rewardManager';
 import { useUserStore } from './useUserStore';
 
+
 interface DailyState {
     dateKey: string;
     morningFocusCompleted: boolean;
@@ -16,14 +17,18 @@ interface DailyState {
     mainTaskId: string | null;
     dailyGreetingStatus: 'INCREASED' | 'FROZEN' | 'LOST' | 'FREEZE_EARNED' | null;
     isStreakModalVisible: boolean;
+    exerciseCommitment: 'SOLO' | 'SOCIAL' | null;
+    mantraDiscovered: boolean;
 
     // La nouvelle checklist du matin
     morningRoutine: {
         water: boolean;
+        bed: boolean;
         stretching: boolean;
         mantra: boolean;
-        focus: boolean;
+        breathing: boolean;
         smile: boolean;
+        shower: boolean;
         task: boolean;
     };
 
@@ -37,7 +42,7 @@ interface DailyState {
     };
 
     // Actions
-    completeMorningFocus: () => void;
+    completeMorningFocus: (isAirplaneMode: boolean) => void;
     completeDayExercise: (themeId: number, type: 'SOLO' | 'SOCIAL') => void;
     completeEveningRitual: () => void;
     toggleMorningStep: (step: keyof DailyState['morningRoutine']) => void;
@@ -47,6 +52,9 @@ interface DailyState {
     checkAndResetNewDay: () => void;
     closeStreakModal: () => void;
     updateEveningDraft: (updates: Partial<DailyState['eveningReviewDraft']>) => void;
+    commitToExercise: () => void;
+    cancelCommitment: () => void;
+    discoverMantra: () => void;
 
     // Fonction de debug pour simuler le passage du temps
     debugSimulateTimePassage: (days: number) => void;
@@ -55,7 +63,7 @@ interface DailyState {
 export const useDailyStore = create<DailyState>()(
     persist(
         (set, get) => ({
-            dateKey: format(new Date(), 'yyyy-MM-dd'),
+            dateKey: getLogicalTodayKey(),
             morningFocusCompleted: false,
             dayExerciseCompleted: false,
             selectedExerciseType: 'SOLO',
@@ -63,14 +71,18 @@ export const useDailyStore = create<DailyState>()(
             mainTaskId: null,
             dailyGreetingStatus: null,
             isStreakModalVisible: false,
+            exerciseCommitment: null,
+            mantraDiscovered: false,
 
             // État initial de la checklist du matin
             morningRoutine: {
                 water: false,
+                bed: false,
                 stretching: false,
                 mantra: false,
-                focus: false,
+                breathing: false,
                 smile: false,
+                shower: false,
                 task: false,
             },
 
@@ -83,10 +95,16 @@ export const useDailyStore = create<DailyState>()(
                 gratitude: ''
             },
 
-            completeMorningFocus: () => {
+            completeMorningFocus: (isAirplaneMode) => {
                 if (!get().morningFocusCompleted) {
                     set({ morningFocusCompleted: true });
-                    grantXP(XP_REWARDS.MORNING_FOCUS);
+
+                    // Calcul de la récompense
+                    const xpEarned = isAirplaneMode
+                        ? XP_REWARDS.MORNING_FOCUS + XP_REWARDS.AIRPLANE_BONUS
+                        : XP_REWARDS.MORNING_FOCUS;
+
+                    grantXP(xpEarned);
                 }
             },
 
@@ -138,8 +156,6 @@ export const useDailyStore = create<DailyState>()(
             setExerciseType: (type) => set({ selectedExerciseType: type }),
 
 
-            // Cherchez la fonction checkAndResetNewDay et remplacez sa logique par celle-ci :
-
             checkAndResetNewDay: () => {
                 const logicalToday = getLogicalTodayKey();
                 const lastDateString = get().dateKey;
@@ -153,32 +169,34 @@ export const useDailyStore = create<DailyState>()(
                     const currentUserStore = useUserStore.getState();
                     const diffDays = differenceInDays(parseISO(logicalToday), parseISO(lastDateString));
 
-                    currentUserStore.setOnboardingDay(currentUserStore.onboardingDay + 1);
-
                     let greetingStatus: DailyState['dailyGreetingStatus'] = null;
 
-                    // Extrait de src/store/useDailyStore.ts
-                    if (diffDays === 1) {
-                        currentUserStore.updateStreak(true);
-                        if (currentUserStore.streak % 6 === 0) {
-                            currentUserStore.addStreakFreeze(1);
-                            greetingStatus = 'FREEZE_EARNED'; // Jackpot : 6 jours !
-                        } else {
-                            greetingStatus = 'INCREASED'; // Routine normale
-                        }
+                    // NOUVEAU : On sécurise ici ! On ne fait progresser les jours que si on avance dans le temps.
+                    if (diffDays > 0) {
+                        currentUserStore.setOnboardingDay(currentUserStore.onboardingDay + 1);
 
-                    } else if (diffDays > 1) {
-                        const missedDays = diffDays - 1;
-                        if (currentUserStore.streakFreezes >= missedDays) {
-                            currentUserStore.useStreakFreeze(missedDays);
+                        if (diffDays === 1) {
                             currentUserStore.updateStreak(true);
-                            greetingStatus = 'FROZEN'; // Ouf, sauvé !
-                        } else {
-                            currentUserStore.updateStreak(false);
-                            greetingStatus = 'LOST'; // Dommage...
+                            if (currentUserStore.streak % 6 === 0) {
+                                currentUserStore.addStreakFreeze(1);
+                                greetingStatus = 'FREEZE_EARNED';
+                            } else {
+                                greetingStatus = 'INCREASED';
+                            }
+                        } else if (diffDays > 1) {
+                            const missedDays = diffDays - 1;
+                            if (currentUserStore.streakFreezes >= missedDays) {
+                                currentUserStore.useStreakFreeze(missedDays);
+                                currentUserStore.updateStreak(true);
+                                greetingStatus = 'FROZEN';
+                            } else {
+                                currentUserStore.updateStreak(false);
+                                greetingStatus = 'LOST';
+                            }
                         }
                     }
 
+                    // On reset les paramètres quotidiens peu importe si diffDays > 0 (au cas où la date change)
                     set({
                         dateKey: logicalToday,
                         morningFocusCompleted: false,
@@ -186,17 +204,21 @@ export const useDailyStore = create<DailyState>()(
                         eveningRitualCompleted: false,
                         mainTaskId: null,
                         selectedExerciseType: 'SOLO',
-                        morningRoutine: { water: false, stretching: false, mantra: false, focus: false, smile: false, task: false },
-
+                        morningRoutine: { water: false, bed: false, stretching: false, mantra: false, breathing: false, smile: false, task: false, shower: false },
+                        mantraDiscovered: false,
                         eveningReviewDraft: { difficulty: null, impact: 0, reflection: '', mood: null, pride: '', gratitude: '' },
-
                         dailyGreetingStatus: greetingStatus,
-                        isStreakModalVisible: greetingStatus !== null
+                        isStreakModalVisible: greetingStatus !== null,
+                        exerciseCommitment: null
                     });
                 }
             },
 
             closeStreakModal: () => set({ isStreakModalVisible: false, dailyGreetingStatus: null }),
+
+            commitToExercise: () => set((state) => ({ exerciseCommitment: state.selectedExerciseType })),
+            cancelCommitment: () => set({ exerciseCommitment: null }),
+            discoverMantra: () => set({ mantraDiscovered: true }),
 
 
             debugSimulateTimePassage: (days) => {

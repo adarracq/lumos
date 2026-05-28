@@ -2,17 +2,29 @@ import { AntidoteModal } from '@/src/components/organisms/AntidoteModal';
 import { BisouModal } from '@/src/components/organisms/BisouModal';
 import { BodyLanguageModal } from '@/src/components/organisms/BodyLanguageModal';
 import { BoredomModal } from '@/src/components/organisms/BoredomModal';
+import { BrainDumpModal } from '@/src/components/organisms/BrainDumpModal';
+import { BreathingModal } from '@/src/components/organisms/BreathingModal';
 import { FearSettingModal } from '@/src/components/organisms/FearSettingModal';
 import { FlowTriggerModal } from '@/src/components/organisms/FlowTriggerModal';
 import { FocusSessionModal } from '@/src/components/organisms/FocusSessionModal';
-import { FocusTimerModal } from '@/src/components/organisms/FocusTimerModal';
+import { FutureSelfModal } from '@/src/components/organisms/FutureSelfModal';
 import { GroundingModal } from '@/src/components/organisms/GroundingModal';
 import { JournalVaultModal } from '@/src/components/organisms/JournalVaultModal';
+import { MicroStepsModal } from '@/src/components/organisms/MicroStepsModal';
 import { QuickActionModal } from '@/src/components/organisms/QuickActionModal';
 import { ReframerModal } from '@/src/components/organisms/ReframerModal';
 import { SocialDojoModal } from '@/src/components/organisms/SocialDojoModal';
 import { SocialFilterModal } from '@/src/components/organisms/SocialFilterModal';
 import { SocialModal } from '@/src/components/organisms/SocialModal';
+import { LogicPathModal } from '@/src/screens/games/LogicPathModal';
+import { MathRushModal } from '@/src/screens/games/MathRushModal';
+import { MemoryMatrixModal } from '@/src/screens/games/MemoryMatrixModal';
+import { NameRecallModal } from '@/src/screens/games/NameRecallModal';
+import { NBackModal } from '@/src/screens/games/NBackModal';
+import { SchulteTableModal } from '@/src/screens/games/SchulteTableModal';
+import { StroopModal } from '@/src/screens/games/StroopModal';
+import { TargetTrackerModal } from '@/src/screens/games/TargetTrackerModal';
+import { WordCascadeModal } from '@/src/screens/games/WordCascadeModal';
 import { feedbackService } from '@/src/services/feedbackService';
 import { useUIStore } from '@/src/store/useUIStore';
 import { Tabs } from 'expo-router';
@@ -169,7 +181,7 @@ export default function TabsLayout() {
 
       <AddTaskModal />
       <QuickActionModal />
-      <FocusTimerModal isVisible={activeModal === 'breathing'} onClose={() => closeModal()} onComplete={() => { }} />
+      <BreathingModal isVisible={activeModal === 'breathing'} onClose={() => closeModal()} />
       <BisouModal isVisible={activeModal === 'bisou'} onClose={() => closeModal()} />
       <FlowTriggerModal isVisible={activeModal === 'flow'} onClose={() => closeModal()} />
       <GroundingModal isVisible={activeModal === 'grounding'} onClose={() => closeModal()} />
@@ -183,6 +195,18 @@ export default function TabsLayout() {
       <FocusSessionModal isVisible={activeModal === 'focusSession'} onClose={() => closeModal()} />
       <FearSettingModal isVisible={activeModal === 'fearSetting'} onClose={() => closeModal()} />
       <JournalVaultModal isVisible={activeModal === 'vault'} onClose={() => closeModal()} />
+      <StroopModal isVisible={activeModal === 'stroop'} onClose={() => closeModal()} />
+      <MathRushModal isVisible={activeModal === 'mathRush'} onClose={() => closeModal()} />
+      <MemoryMatrixModal isVisible={activeModal === 'memoryMatrix'} onClose={() => closeModal()} />
+      <NBackModal isVisible={activeModal === 'nback'} onClose={() => closeModal()} />
+      <LogicPathModal isVisible={activeModal === 'logicPath'} onClose={() => closeModal()} />
+      <SchulteTableModal isVisible={activeModal === 'schulte'} onClose={() => closeModal()} />
+      <TargetTrackerModal isVisible={activeModal === 'targetTracker'} onClose={() => closeModal()} />
+      <WordCascadeModal isVisible={activeModal === 'wordCascade'} onClose={() => closeModal()} />
+      <NameRecallModal isVisible={activeModal === 'nameRecall'} onClose={() => closeModal()} />
+      <BrainDumpModal isVisible={activeModal === 'brainDump'} onClose={() => closeModal()} />
+      <FutureSelfModal isVisible={activeModal === 'futureSelf'} onClose={() => closeModal()} />
+      <MicroStepsModal isVisible={activeModal === 'microSteps'} onClose={() => closeModal()} />
     </>
   );
 }

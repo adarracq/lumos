@@ -1,4 +1,6 @@
+// src/components/organisms/StretchingModal.tsx
 import { feedbackService } from '@/src/services/feedbackService';
+import { useUserStore } from '@/src/store/useUserStore';
 import { CheckCircle2, ChevronRight, Pause, Play, RefreshCw } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -21,14 +23,34 @@ export const StretchingModal = ({ isVisible, onClose, onComplete }: StretchingMo
     const [timeLeft, setTimeLeft] = useState(30);
     const [isActive, setIsActive] = useState(false);
     const [isFinished, setIsFinished] = useState(false);
+    const trackToolUsage = useUserStore(state => state.trackToolUsage);
 
     const endTimeRef = useRef<number | null>(null);
     const remainingTimeRef = useRef<number>(30);
+    const lastTickRef = useRef<number | null>(null);
 
     useEffect(() => {
         if (isVisible) {
-            const shuffled = [...ALL_STRETCHES].sort(() => 0.5 - Math.random());
-            const selected = shuffled.slice(0, 4);
+            // 1. Mélange robuste de Fisher-Yates (vrai aléatoire)
+            const shuffled = [...ALL_STRETCHES];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+
+            // 2. Filtre de sécurité absolu anti-doublon (basé sur l'ID)
+            const uniqueStretches: StretchDef[] = [];
+            const seenIds = new Set();
+
+            for (const stretch of shuffled) {
+                if (!seenIds.has(stretch.id)) {
+                    seenIds.add(stretch.id);
+                    uniqueStretches.push(stretch);
+                }
+            }
+
+            // 3. Sélection des 4 premiers étirements uniques
+            const selected = uniqueStretches.slice(0, 4);
 
             setDailyStretches(selected);
             setCurrentIndex(0);
@@ -36,6 +58,7 @@ export const StretchingModal = ({ isVisible, onClose, onComplete }: StretchingMo
             const initialDuration = selected[0].duration;
             setTimeLeft(initialDuration);
             remainingTimeRef.current = initialDuration;
+            lastTickRef.current = null;
 
             setIsActive(false);
             setIsFinished(false);
@@ -55,17 +78,33 @@ export const StretchingModal = ({ isVisible, onClose, onComplete }: StretchingMo
                 if (endTimeRef.current) {
                     const now = Date.now();
                     const newTimeLeft = Math.max(0, Math.round((endTimeRef.current - now) / 1000));
-                    setTimeLeft(newTimeLeft);
-                    remainingTimeRef.current = newTimeLeft;
-                    if (newTimeLeft === 0) handleNext();
+
+                    // On met à jour l'état seulement si la seconde a changé
+                    if (newTimeLeft !== remainingTimeRef.current) {
+                        setTimeLeft(newTimeLeft);
+                        remainingTimeRef.current = newTimeLeft;
+
+                        // 💡 LOGIQUE DES FEEDBACKS 💡
+                        // Si on est dans les 5 dernières secondes (5, 4, 3, 2, 1) ET qu'on n'a pas encore joué de son pour cette seconde
+                        if (newTimeLeft > 0 && newTimeLeft <= 5 && lastTickRef.current !== newTimeLeft) {
+                            feedbackService.stretchCountdown();
+                            lastTickRef.current = newTimeLeft;
+                        }
+
+                        // Quand on arrive à 0
+                        if (newTimeLeft === 0) {
+                            feedbackService.stretchEnd();
+                            lastTickRef.current = null; // On réinitialise pour le prochain étirement
+                            handleNext();
+                        }
+                    }
                 }
-            }, 500);
+            }, 100); // 👈 On accélère légèrement l'intervalle pour être plus précis avec l'horloge système
         }
         return () => clearInterval(interval);
-    }, [isActive, isFinished, currentIndex]);
+    }, [isActive, isFinished, currentIndex]); // 👈 J'ai gardé vos dépendances, le `remainingTimeRef` évite les boucles infinies
 
     const handleNext = () => {
-        feedbackService.medium();
         if (currentIndex < dailyStretches.length - 1) {
             const nextIndex = currentIndex + 1;
             setCurrentIndex(nextIndex);
@@ -93,34 +132,31 @@ export const StretchingModal = ({ isVisible, onClose, onComplete }: StretchingMo
         }
     };
 
-    // 💡 NOUVEAU: Fonction pour changer l'étirement en cours
     const handleSwapCurrent = () => {
-        // On cherche les étirements qui ne sont pas déjà dans la session en cours
         const availableStretches = ALL_STRETCHES.filter(
             (stretch) => !dailyStretches.some((ds) => ds.id === stretch.id)
         );
 
-        if (availableStretches.length === 0) return; // Sécurité si on a déjà tout mis
+        if (availableStretches.length === 0) return;
 
-        // On en prend un au hasard
         const randomNewStretch = availableStretches[Math.floor(Math.random() * availableStretches.length)];
 
-        // On le remplace dans la liste du jour
         const updatedStretches = [...dailyStretches];
         updatedStretches[currentIndex] = randomNewStretch;
 
         setDailyStretches(updatedStretches);
 
-        // On remet le chrono à zéro pour ce nouvel exercice et on met en pause
         const newDuration = randomNewStretch.duration;
         setTimeLeft(newDuration);
         remainingTimeRef.current = newDuration;
+        lastTickRef.current = null; // On réinitialise le tracker de ticks
         setIsActive(false);
         endTimeRef.current = null;
     };
 
     const handleFinish = () => {
         onComplete();
+        //trackToolUsage('stretching');
         onClose();
     };
 
@@ -132,6 +168,7 @@ export const StretchingModal = ({ isVisible, onClose, onComplete }: StretchingMo
             onClose={onClose}
             title="Éveil corporel"
         >
+            {/* ... (LE RESTE DE VOTRE INTERFACE EST STRICTEMENT IDENTIQUE) ... */}
             {isFinished ? (
                 <View style={styles.centerContent}>
                     <View style={[styles.iconCircle, { borderColor: 'rgba(76, 175, 80, 0.2)', backgroundColor: 'rgba(76, 175, 80, 0.1)' }]}>
@@ -173,7 +210,11 @@ export const StretchingModal = ({ isVisible, onClose, onComplete }: StretchingMo
                             {isActive ? <Pause color={Colors.text} size={24} /> : <Play color={Colors.text} size={24} style={{ marginLeft: 4 }} />}
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={[styles.glassControlBtn, { backgroundColor: 'rgba(255, 255, 255, 0.1)' }]} onPress={handleNext}>
+                        <TouchableOpacity style={[styles.glassControlBtn, { backgroundColor: 'rgba(255, 255, 255, 0.1)' }]} onPress={() => {
+                            // J'ai enlevé le handleNext direct ici pour ajouter un petit feedback manuel si on passe
+                            feedbackService.medium();
+                            handleNext();
+                        }}>
                             <ChevronRight color={Colors.text} size={24} />
                         </TouchableOpacity>
                     </View>
@@ -187,24 +228,18 @@ export const StretchingModal = ({ isVisible, onClose, onComplete }: StretchingMo
 };
 
 const styles = StyleSheet.create({
+    // ... (Vos styles restent inchangés) ...
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
     modalContent: { backgroundColor: Colors.surface, height: '85%', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 25, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.05)' },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
     closeBtn: { backgroundColor: 'rgba(255,255,255,0.05)', padding: 6, borderRadius: 20 },
-
     centerContent: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     iconCircle: { width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center', borderWidth: 2 },
-
     glassProgressBadge: { backgroundColor: 'rgba(255, 255, 255, 0.05)', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.1)' },
     progressText: { color: Colors.primary, fontFamily: 'PoppinsBold', letterSpacing: 1, fontSize: 11, textTransform: 'uppercase' },
-
     glassImageContainer: { width: 200, height: 200, backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: 100, justifyContent: 'center', alignItems: 'center', marginBottom: 30, borderWidth: 2, borderColor: 'rgba(212, 175, 55, 0.3)' },
     timerText: { fontSize: 64, fontFamily: 'PoppinsBold', marginBottom: 30 },
-
     controls: { flexDirection: 'row', gap: 20, alignItems: 'center' },
-
-    // NOUVEAU: Style pour le bouton secondaire (Swap)
     glassSecondaryControlBtn: { width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(255, 255, 255, 0.05)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.1)' },
-
     glassControlBtn: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255, 255, 255, 0.05)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.1)' },
 });

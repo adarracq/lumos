@@ -35,23 +35,47 @@ export const notificationService = {
         return finalStatus === 'granted';
     },
 
-    // 2. Planifier la notification du Bilan du Soir (ex: 20h00)
-    async scheduleEveningReview() {
-        // On annule d'abord toute notification de bilan existante pour éviter les doublons
-        await this.cancelNotification('evening-review');
+    async scheduleMorningRoutine(timeString: string) {
+        await this.cancelNotification('morning-routine');
+        const [hour, minute] = timeString.split(':').map(Number);
+        await Notifications.scheduleNotificationAsync({
+            identifier: 'morning-routine',
+            content: {
+                title: "🌅 Bonjour",
+                body: "Il est temps de démarrer ta journée avec ta routine matinale.",
+                sound: true,
+            },
+            trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute },
+        });
+    },
 
+    // -- EXERCICE DU JOUR --
+    async scheduleDayExercise(timeString: string) {
+        await this.cancelNotification('day-exercise');
+        const [hour, minute] = timeString.split(':').map(Number);
+        await Notifications.scheduleNotificationAsync({
+            identifier: 'day-exercise',
+            content: {
+                title: "⚡ Exercice du jour",
+                body: "Prends quelques instants pour toi. C'est l'heure de ton exercice.",
+                sound: true,
+            },
+            trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute },
+        });
+    },
+
+    // -- BILAN DU SOIR --
+    async scheduleEveningReview(timeString: string) {
+        await this.cancelNotification('evening-review');
+        const [hour, minute] = timeString.split(':').map(Number);
         await Notifications.scheduleNotificationAsync({
             identifier: 'evening-review',
             content: {
                 title: "🌙 Bilan du Soir",
-                body: "Prends 2 minutes pour valider ta journée, noter tes réflexions et clôturer ton cycle.",
+                body: "Prends 2 minutes pour valider ta journée et clôturer ton cycle.",
                 sound: true,
             },
-            trigger: {
-                type: Notifications.SchedulableTriggerInputTypes.DAILY,
-                hour: 20,
-                minute: 0,
-            },
+            trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute },
         });
     },
 

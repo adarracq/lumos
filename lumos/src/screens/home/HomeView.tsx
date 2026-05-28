@@ -7,6 +7,7 @@ import { Colors } from '../../../src/constants/Colors';
 import { useDailyStore } from '../../../src/store/useDailyStore';
 import { useUserStore } from '../../../src/store/useUserStore';
 import { getDailyContent } from '../../../src/utils/cycleManager';
+import { DailyThemeHeader } from './components/DailyThemeHeader';
 import { DayExerciseBlock } from './components/DayExerciseBlock';
 import { EveningBlock } from './components/EveningBlock';
 import { MorningRoutine } from './components/MorningRoutine';
@@ -74,13 +75,7 @@ export const HomeView = () => {
                 </View>
             </View>
 
-            {/* 2. LE MANTRA EN HÉRO */}
-            <View style={styles.mantraWrapper}>
-                <View style={styles.mantraGlassBox}>
-                    <Text style={styles.mantraLabel}>MANTRA DU JOUR</Text>
-                    <Text style={styles.mantraText}>« {theme.mantra} »</Text>
-                </View>
-            </View>
+            <DailyThemeHeader theme={theme} />
 
             {/* 3. LE SÉLECTEUR DE PHASE (TABS GLASSMORPHISM) */}
             <View style={styles.tabsContainer}>

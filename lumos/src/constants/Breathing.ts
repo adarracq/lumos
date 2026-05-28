@@ -61,7 +61,7 @@ export const BREATHING_EXERCISES: BreathingExercise[] = [
         type: 'CYCLE_BASED',
         defaultTarget: 2,
         phases: [
-            { label: 'Respiration Rapide', duration: 40, action: 'FAST' }, // 20 respirations de 2s
+            { label: 'Respiration Rapide', duration: 60, action: 'FAST' },
             { label: 'Rétention (Vides)', duration: 0, action: 'HOLD_EMPTY', isVariable: true }, // Apnée libre
             { label: 'Inhale à fond...', duration: 3, action: 'IN' },
             { label: 'Blocage (Pleins)', duration: 15, action: 'HOLD_FULL' }, // Compte à rebours 15s

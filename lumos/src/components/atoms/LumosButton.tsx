@@ -1,7 +1,7 @@
 // src/components/atoms/LumosButton.tsx
 import { feedbackService } from '@/src/services/feedbackService';
-import React from 'react';
-import { ActivityIndicator, StyleSheet, TouchableOpacity, View, ViewStyle } from 'react-native';
+import React, { useRef } from 'react';
+import { ActivityIndicator, Animated, Pressable, StyleSheet, View, ViewStyle } from 'react-native';
 import { Colors } from '../../constants/Colors';
 import { Subtitle } from './Typography';
 
@@ -10,10 +10,12 @@ interface LumosButtonProps {
     onPress: () => void;
     variant?: 'primary' | 'outline' | 'ghost';
     isLoading?: boolean;
-    style?: ViewStyle;
+    style?: ViewStyle | ViewStyle[];
     disabled?: boolean;
-    color?: string; // Optionnel pour permettre une personnalisation de la couleur du texte
+    color?: string;
 }
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export const LumosButton = ({ title, onPress, variant = 'primary', isLoading, style, disabled, color }: LumosButtonProps) => {
     const isPrimary = variant === 'primary';
@@ -21,8 +23,37 @@ export const LumosButton = ({ title, onPress, variant = 'primary', isLoading, st
     const isDisabled = isLoading || disabled;
     const buttonColor = color ? color : Colors.primary;
 
+    const scaleAnim = useRef(new Animated.Value(1)).current;
+
+    const handlePressIn = () => {
+        if (isDisabled) return;
+        Animated.spring(scaleAnim, {
+            toValue: 0.96,
+            useNativeDriver: true,
+            speed: 30,
+        }).start();
+    };
+
+    const handlePressOut = () => {
+        if (isDisabled) return;
+        Animated.spring(scaleAnim, {
+            toValue: 1,
+            useNativeDriver: true,
+            bounciness: 10,
+            speed: 20,
+        }).start();
+    };
+
     return (
-        <TouchableOpacity
+        <AnimatedPressable
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            onPress={() => {
+                feedbackService.heavy();
+                onPress();
+            }}
+            disabled={isDisabled}
+            // 👈 CORRECTION ICI : On retire la fonction ({ pressed }) => pour remettre un simple tableau
             style={[
                 styles.buttonBase,
                 isPrimary && styles.primaryGlass,
@@ -30,14 +61,9 @@ export const LumosButton = ({ title, onPress, variant = 'primary', isLoading, st
                 variant === 'ghost' && styles.ghost,
                 isDisabled && styles.disabledButton,
                 style,
-                color && { borderTopColor: color } // Permet de personnaliser la bordure si une couleur est fournie
+                color && { borderTopColor: color },
+                { transform: [{ scale: scaleAnim }] }
             ]}
-            onPress={() => {
-                feedbackService.heavy();
-                onPress();
-            }}
-            disabled={isDisabled}
-            activeOpacity={0.7}
         >
             {isLoading ? (
                 <ActivityIndicator color={isPrimary ? Colors.text : buttonColor} />
@@ -56,7 +82,7 @@ export const LumosButton = ({ title, onPress, variant = 'primary', isLoading, st
                     </Subtitle>
                 </View>
             )}
-        </TouchableOpacity>
+        </AnimatedPressable>
     );
 };
 
@@ -69,25 +95,20 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         width: '100%',
         marginVertical: 8,
-        // SUPPRESSION DES OMBRES ICI (shadow et elevation)
     },
-    // --- VARIANT: PRIMARY (Glassmorphism Premium avec Accentuation) ---
     primaryGlass: {
-        backgroundColor: 'rgba(255, 255, 255, 0.05)', // Encore plus transparent pour éviter l'effet "gris"
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.08)',
-        borderTopColor: Colors.primary, // L'éclat de lumière de ta couleur en haut
+        borderTopColor: Colors.primary,
         borderTopWidth: 1.5,
     },
-    // --- VARIANT: OUTLINE (Verre fumé / Secondaire) ---
     outlineGlass: {
         backgroundColor: 'rgba(0, 0, 0, 0.2)',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.06)',
-        // Si tu veux aussi un rappel sur le bouton secondaire :
         borderTopColor: `${Colors.primary}80`,
     },
-    // --- VARIANT: GHOST (Invisible, juste le texte) ---
     ghost: {
         backgroundColor: 'transparent',
         shadowOpacity: 0,
@@ -102,18 +123,18 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     text: {
-        fontSize: 15, // Légèrement affiné
-        letterSpacing: 1.2, // Un peu plus d'espace pour le côté élégant
+        fontSize: 15,
+        letterSpacing: 1.2,
         fontFamily: 'PoppinsSemiBold',
     },
     primaryText: {
         color: Colors.primary,
-        textShadowColor: `${Colors.primary}40`, // Un léger halo lumineux autour du texte
+        textShadowColor: `${Colors.primary}40`,
         textShadowOffset: { width: 0, height: 0 },
         textShadowRadius: 8,
     },
     outlineText: {
-        color: Colors.textMuted, // Texte légèrement grisé
+        color: Colors.textMuted,
     },
     ghostText: {
         color: Colors.textMuted,

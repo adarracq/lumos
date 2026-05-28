@@ -32,7 +32,7 @@ export const BodyLanguageModal = ({ isVisible, onClose }: { isVisible: boolean, 
             <View style={styles.glassTipCard}>
                 <View style={styles.iconBg}><Copy color="#4CAF50" size={24} /></View>
                 <View style={{ flex: 1 }}>
-                    <Text style={styles.tipTitle}>L'Effet Miroir (Négociation)</Text>
+                    <Text style={styles.tipTitle}>L'Effet Miroir</Text>
                     <Text style={styles.tipDesc}>Répète simplement les 2 ou 3 derniers mots importants que ton interlocuteur vient de dire, puis fais un silence. Il va naturellement développer et se confier.</Text>
                 </View>
             </View>

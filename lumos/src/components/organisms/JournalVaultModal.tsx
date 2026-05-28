@@ -1,9 +1,9 @@
 // src/components/organisms/JournalVaultModal.tsx
 import { useAlertStore } from '@/src/store/useAlertStore';
-import { parseISO } from 'date-fns';
-import { Calendar, ChevronDown, ChevronUp, Cloud, CloudRain, Heart, Search, Sparkles, Sun, Trash2, X } from 'lucide-react-native';
-import React, { useState } from 'react';
-import { LayoutAnimation, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { differenceInDays, format, parseISO, subDays, subMonths, subYears } from 'date-fns';
+import { Calendar, ChevronDown, ChevronUp, Cloud, CloudRain, Heart, History, Search, Sparkles, Sun, Trash2, X } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import { LayoutAnimation, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/Colors';
 import { feedbackService } from '../../services/feedbackService';
 import { useJournalStore } from '../../store/useJournalStore';
@@ -19,12 +19,7 @@ const MOOD_MAP: Record<string, { icon: any; color: string; label: string }> = {
     RADIANT: { icon: Sparkles, color: Colors.primary, label: 'Rayonnant' },
     PEACEFUL: { icon: Sun, color: '#4CAF50', label: 'Paisible' },
     NEUTRAL: { icon: Cloud, color: Colors.textMuted, label: 'Neutre' },
-    EXHAUSTED: { icon: CloudRain, color: '#CF6679', label: 'Épuisé' },
-    // Rétro-compatibilité
-    '🔥': { icon: Sparkles, color: Colors.primary, label: 'Rayonnant' },
-    '☀️': { icon: Sun, color: '#4CAF50', label: 'Paisible' },
-    '☁️': { icon: Cloud, color: Colors.textMuted, label: 'Neutre' },
-    '🌩️': { icon: CloudRain, color: '#CF6679', label: 'Épuisé' }
+    EXHAUSTED: { icon: CloudRain, color: '#CF6679', label: 'Épuisé' }
 };
 
 export const JournalVaultModal = ({ isVisible, onClose }: JournalVaultModalProps) => {
@@ -32,7 +27,52 @@ export const JournalVaultModal = ({ isVisible, onClose }: JournalVaultModalProps
     const [activeTab, setActiveTab] = useState<'ALL' | 'FAVORITES'>('ALL');
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
+
+    // 💡 NOUVEAU : Gestion du Flashback
+    const [flashback, setFlashback] = useState<{ entry: any, label: string } | null>(null);
+    const [isFlashbackExpanded, setIsFlashbackExpanded] = useState(false);
+
     const { showAlert } = useAlertStore();
+
+    // 💡 MOTEUR DU FLASHBACK (Se déclenche à l'ouverture)
+    useEffect(() => {
+        if (isVisible && entries.length > 0) {
+            const now = new Date();
+            const oneYearAgo = format(subYears(now, 1), 'yyyy-MM-dd');
+            const oneMonthAgo = format(subMonths(now, 1), 'yyyy-MM-dd');
+            const oneWeekAgo = format(subDays(now, 7), 'yyyy-MM-dd');
+
+            let found = entries.find(e => e.date === oneYearAgo);
+            let label = "Il y a exactement un an...";
+
+            if (!found) {
+                found = entries.find(e => e.date === oneMonthAgo);
+                label = "Il y a exactement un mois...";
+            }
+
+            if (!found) {
+                found = entries.find(e => e.date === oneWeekAgo);
+                label = "Il y a exactement une semaine...";
+            }
+
+            if (!found) {
+                // On cherche une entrée de plus de 5 jours au hasard
+                const olderEntries = entries.filter(e => {
+                    try { return differenceInDays(now, parseISO(e.date)) > 5; }
+                    catch { return false; }
+                });
+
+                if (olderEntries.length > 0) {
+                    found = olderEntries[Math.floor(Math.random() * olderEntries.length)];
+                    label = "Un saut dans ton passé...";
+                }
+            }
+            setFlashback(found ? { entry: found, label } : null);
+            setIsFlashbackExpanded(false);
+        } else {
+            setFlashback(null);
+        }
+    }, [isVisible, entries]);
 
     if (!isVisible) return null;
 
@@ -55,6 +95,7 @@ export const JournalVaultModal = ({ isVisible, onClose }: JournalVaultModalProps
                     onPress: () => {
                         feedbackService.heavy();
                         deleteEntry(id);
+                        if (flashback?.entry.id === id) setFlashback(null);
                     }
                 }
             ]
@@ -71,7 +112,6 @@ export const JournalVaultModal = ({ isVisible, onClose }: JournalVaultModalProps
         }
     };
 
-    // 💡 NOUVEAU PARSER PREMIUM
     const renderCleanContent = (content: string) => {
         const lines = content.split('\n');
 
@@ -89,17 +129,12 @@ export const JournalVaultModal = ({ isVisible, onClose }: JournalVaultModalProps
                         );
                     }
 
-                    return (
-                        <Text key={index} style={styles.sectionBodyText}>
-                            {text}
-                        </Text>
-                    );
+                    return <Text key={index} style={styles.sectionBodyText}>{text}</Text>;
                 })}
             </View>
         );
     };
 
-    // 💡 GESTION DU FILTRE ET DE LA RECHERCHE
     const filteredEntries = entries.filter(e => {
         const matchesTab = activeTab === 'ALL' || e.isFavorite;
         const matchesSearch = e.title.toLowerCase().includes(searchQuery.toLowerCase()) || e.content.toLowerCase().includes(searchQuery.toLowerCase());
@@ -112,7 +147,6 @@ export const JournalVaultModal = ({ isVisible, onClose }: JournalVaultModalProps
             onClose={onClose}
             title="Coffre-fort"
         >
-
             {/* SÉLECTEUR D'ONGLETS */}
             <View style={styles.tabBar}>
                 <TouchableOpacity
@@ -130,7 +164,7 @@ export const JournalVaultModal = ({ isVisible, onClose }: JournalVaultModalProps
                 </TouchableOpacity>
             </View>
 
-            {/* 💡 BARRE DE RECHERCHE RÉINTÉGRÉE */}
+            {/* BARRE DE RECHERCHE */}
             <View style={styles.searchBar}>
                 <Search color={Colors.textMuted} size={18} />
                 <TextInput
@@ -148,8 +182,54 @@ export const JournalVaultModal = ({ isVisible, onClose }: JournalVaultModalProps
                 )}
             </View>
 
-            {/* LISTE DES INTROSPECTIONS EXPANDABLES */}
             <ScrollView style={styles.listScroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+
+                {/* 💡 MODULE FLASHBACK (S'affiche uniquement sans recherche et sur "Archives") */}
+                {flashback && activeTab === 'ALL' && searchQuery === '' && (
+                    <TouchableOpacity
+                        style={[styles.flashbackCard, isFlashbackExpanded && styles.flashbackCardExpanded]}
+                        onPress={() => {
+                            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                            setIsFlashbackExpanded(!isFlashbackExpanded);
+                            feedbackService.light();
+                        }}
+                        activeOpacity={0.9}
+                    >
+                        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+                            <History color={Colors.primary} size={120} style={styles.flashbackBgIcon} opacity={0.03} />
+                        </View>
+
+                        <View style={styles.flashbackHeaderRow}>
+                            <View style={styles.flashbackBadge}>
+                                <Sparkles color={Colors.primary} size={12} />
+                                <Text style={styles.flashbackBadgeText}>FLASHBACK</Text>
+                            </View>
+                            <Text style={styles.flashbackLabel}>{flashback.label}</Text>
+                        </View>
+
+                        <Text style={styles.flashbackTitle}>{flashback.entry.title}</Text>
+
+                        {isFlashbackExpanded ? (
+                            <View style={styles.flashbackExpandedContent}>
+                                <View style={styles.divider} />
+                                {renderCleanContent(flashback.entry.content)}
+                            </View>
+                        ) : (
+                            <Text style={styles.flashbackPreview} numberOfLines={2}>
+                                {flashback.entry.content.replace(/\[.*?\]/g, '').replace(/\n/g, ' ').trim()}
+                            </Text>
+                        )}
+
+                        {!isFlashbackExpanded && (
+                            <View style={styles.flashbackFooter}>
+                                <Text style={styles.flashbackActionText}>Appuyer pour redécouvrir</Text>
+                                <ChevronDown color={Colors.primary} size={16} />
+                            </View>
+                        )}
+                    </TouchableOpacity>
+                )}
+
+                {/* LISTE DES INTROSPECTIONS */}
                 {filteredEntries.length === 0 ? (
                     <BodyText center color={Colors.textMuted} style={styles.emptyText}>
                         {searchQuery.length > 0
@@ -158,6 +238,9 @@ export const JournalVaultModal = ({ isVisible, onClose }: JournalVaultModalProps
                     </BodyText>
                 ) : (
                     filteredEntries.map((entry) => {
+                        // Optionnel : ne pas réafficher le flashback s'il est déjà tout en haut
+                        if (flashback && entry.id === flashback.entry.id && activeTab === 'ALL' && searchQuery === '') return null;
+
                         const isExpanded = expandedEntryId === entry.id;
                         const moodConfig = entry.mood ? MOOD_MAP[entry.mood] : MOOD_MAP['NEUTRAL'];
                         const MoodIcon = moodConfig?.icon || Cloud;
@@ -181,7 +264,7 @@ export const JournalVaultModal = ({ isVisible, onClose }: JournalVaultModalProps
                                     <View style={styles.cardRightActions}>
                                         <TouchableOpacity
                                             style={styles.actionBtn}
-                                            onPress={() => { toggleFavorite(entry.id); feedbackService.success(); }}
+                                            onPress={() => { toggleFavorite(entry.id); feedbackService.light(); }}
                                         >
                                             <Heart size={18} color={entry.isFavorite ? '#E91E63' : Colors.textMuted} fill={entry.isFavorite ? '#E91E63' : 'transparent'} />
                                         </TouchableOpacity>
@@ -195,7 +278,7 @@ export const JournalVaultModal = ({ isVisible, onClose }: JournalVaultModalProps
                                         {renderCleanContent(entry.content)}
 
                                         <View style={styles.expandedFooter}>
-                                            <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(entry.id)}>
+                                            <TouchableOpacity style={styles.deleteBtn} onPress={() => { handleDelete(entry.id); feedbackService.error(); }}>
                                                 <Trash2 color="#CF6679" size={14} />
                                                 <Text style={styles.deleteBtnText}>Supprimer</Text>
                                             </TouchableOpacity>
@@ -212,15 +295,6 @@ export const JournalVaultModal = ({ isVisible, onClose }: JournalVaultModalProps
 };
 
 const styles = StyleSheet.create({
-    // 💡 PLEIN ÉCRAN
-    container: { flex: 1, backgroundColor: Colors.background, paddingTop: Platform.OS === 'ios' ? 60 : 40, paddingHorizontal: 20 },
-
-    // Header
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    title: { color: Colors.text, fontSize: 24, fontFamily: 'PoppinsBold' },
-    closeBtn: { padding: 6, backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: 12 },
-
     // Tab Bar
     tabBar: { flexDirection: 'row', backgroundColor: 'rgba(255, 255, 255, 0.03)', borderRadius: 14, padding: 4, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.05)' },
     tabBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10 },
@@ -228,17 +302,32 @@ const styles = StyleSheet.create({
     tabText: { color: Colors.textMuted, fontFamily: 'PoppinsSemiBold', fontSize: 13 },
     tabTextActive: { color: Colors.text },
 
-    // 💡 BARRE DE RECHERCHE
+    // Search Bar
     searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 12, paddingHorizontal: 12, height: 44, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
     searchInput: { flex: 1, marginLeft: 10, color: Colors.text, fontSize: 14, fontFamily: 'InterRegular', height: '100%' },
 
     // ScrollView
-    listScroll: { flex: 1, marginHorizontal: -20, paddingHorizontal: 20 }, // Déborde pour cacher la scrollbar
+    listScroll: { flex: 1, marginHorizontal: -20, paddingHorizontal: 20 },
     scrollContent: { gap: 12, paddingBottom: 60 },
     emptyText: { marginTop: 40, fontStyle: 'italic', paddingHorizontal: 20, fontSize: 14 },
 
+    // 💡 STYLES FLASHBACK
+    flashbackCard: { backgroundColor: 'rgba(212, 175, 55, 0.05)', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.3)', padding: 16, overflow: 'hidden', marginBottom: 8 },
+    flashbackCardExpanded: { backgroundColor: 'rgba(212, 175, 55, 0.08)' },
+    flashbackBgIcon: { position: 'absolute', right: -20, top: -20, transform: [{ rotate: '15deg' }] },
+    flashbackHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+    flashbackBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(212, 175, 55, 0.15)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+    flashbackBadgeText: { color: Colors.primary, fontFamily: 'PoppinsBold', fontSize: 10, letterSpacing: 0.5 },
+    flashbackLabel: { color: Colors.textMuted, fontFamily: 'InterMedium', fontSize: 12 },
+    flashbackTitle: { color: Colors.text, fontFamily: 'PoppinsBold', fontSize: 18, marginBottom: 8 },
+    flashbackPreview: { color: Colors.textMuted, fontFamily: 'InterRegular', fontSize: 14, lineHeight: 22, opacity: 0.8 },
+    flashbackExpandedContent: { marginTop: 8 },
+    flashbackFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(212, 175, 55, 0.1)', paddingTop: 12 },
+    flashbackActionText: { color: Colors.primary, fontFamily: 'PoppinsSemiBold', fontSize: 12 },
+
+    // Cards Classiques
     glassCard: { backgroundColor: 'rgba(30, 30, 30, 0.4)', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.05)', overflow: 'hidden' },
-    glassCardExpanded: { borderColor: 'rgba(212, 175, 55, 0.2)', backgroundColor: 'rgba(30, 30, 30, 0.6)' },
+    glassCardExpanded: { borderColor: 'rgba(255, 255, 255, 0.15)', backgroundColor: 'rgba(30, 30, 30, 0.6)' },
     cardMainRow: { flexDirection: 'row', alignItems: 'center', padding: 16 },
 
     moodIconBg: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
@@ -253,7 +342,6 @@ const styles = StyleSheet.create({
     expandedContent: { paddingHorizontal: 16, paddingBottom: 16 },
     divider: { height: 1, backgroundColor: 'rgba(255, 255, 255, 0.06)', marginBottom: 16 },
 
-    // 💡 STYLE TYPOGRAPHIQUE PREMIUM (Plus de gros orange)
     parsedContainer: { gap: 6 },
     lineSpacer: { height: 8 },
     sectionHeaderLabel: { color: Colors.primary, fontFamily: 'PoppinsSemiBold', fontSize: 13, marginTop: 10, opacity: 0.9 },

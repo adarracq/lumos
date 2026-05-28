@@ -1,4 +1,8 @@
 // src/components/organisms/BoredomModal.tsx
+import { XP_REWARDS } from '@/src/constants/Rewards';
+import { feedbackService } from '@/src/services/feedbackService';
+import { useUserStore } from '@/src/store/useUserStore';
+import { grantXP } from '@/src/utils/rewardManager';
 import { Hourglass, Smile } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -12,6 +16,7 @@ export const BoredomModal = ({ isVisible, onClose }: { isVisible: boolean, onClo
     const [isActive, setIsActive] = useState(false);
     const [isFinished, setIsFinished] = useState(false);
     const endTimeRef = useRef<number | null>(null);
+    const trackToolUsage = useUserStore(state => state.trackToolUsage);
 
     useEffect(() => {
         if (isVisible) {
@@ -36,6 +41,9 @@ export const BoredomModal = ({ isVisible, onClose }: { isVisible: boolean, onClo
                     if (newTimeLeft === 0) {
                         setIsActive(false);
                         setIsFinished(true);
+                        feedbackService.success(true);
+                        trackToolUsage('boredom');
+                        grantXP(XP_REWARDS.BOREDOM)
                     }
                 }
             }, 500);

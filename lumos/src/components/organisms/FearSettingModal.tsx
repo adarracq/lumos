@@ -8,6 +8,7 @@ import { feedbackService } from '../../services/feedbackService';
 import { useJournalStore } from '../../store/useJournalStore';
 import { getLogicalTodayKey } from '../../utils/dateUtils';
 
+import { useUserStore } from '@/src/store/useUserStore';
 import { LumosButton } from '../atoms/LumosButton';
 import { BaseBottomSheetModal } from '../molecules/BaseBottomSheet';
 
@@ -18,6 +19,7 @@ interface FearSettingModalProps {
 
 export const FearSettingModal = ({ isVisible, onClose }: FearSettingModalProps) => {
     const [step, setStep] = useState(1);
+    const trackToolUsage = useUserStore(state => state.trackToolUsage);
 
     // Les réponses de la méthode de Tim Ferriss
     const [decision, setDecision] = useState('');
@@ -60,6 +62,7 @@ ${inactionCost.trim()}`;
         }
 
         feedbackService.heavy();
+        trackToolUsage('fearSetting');
         setTimeout(() => feedbackService.success(), 300);
 
         // Reset
@@ -73,7 +76,7 @@ ${inactionCost.trim()}`;
         <BaseBottomSheetModal
             isVisible={isVisible}
             onClose={onClose}
-            title="Cartographie des peurs"
+            title="Peur de l'échec"
         >
             {/* ÉTAPE 1 : LA DÉCISION */}
             {step === 1 && (

@@ -1,6 +1,6 @@
 // src/components/organisms/AddTaskModal.tsx
 import { feedbackService } from '@/src/services/feedbackService';
-import { Flame, Star } from 'lucide-react-native';
+import { Flame, Info, Star } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/Colors';
@@ -69,6 +69,17 @@ export const AddTaskModal = () => {
                 </TouchableOpacity>
             </View>
 
+            {/* 💡 NOUVEAU : ENCART D'INFO PSYCHOLOGIQUE */}
+            <View style={styles.infoBlock}>
+                <View style={styles.infoHeader}>
+                    <Info color={Colors.primary} size={16} />
+                    <Text style={styles.infoTitle}>Implémentation d'intention</Text>
+                </View>
+                <Text style={styles.infoDesc}>
+                    Précise mentalement le <Text style={styles.highlight}>Où, Quand et Comment</Text> tu vas accomplir cette tâche.{"\n"}Pré-décider supprime la friction décisionnelle et triple tes chances d'agir.
+                </Text>
+            </View>
+
             <LumosButton title="Ajouter à ma liste" onPress={handleAdd} disabled={title.trim().length === 0} />
         </BaseBottomSheetModal>
     );
@@ -80,13 +91,47 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.3)',
         color: Colors.text,
         fontSize: 16,
-        fontFamily: 'InterRegular', // Ou la police que tu as définie
+        fontFamily: 'InterRegular',
         borderRadius: 16,
         padding: 18,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.08)',
+        marginBottom: 20,
+    },
+
+    // Nouveaux styles pour l'encart d'information
+    infoBlock: {
+        backgroundColor: 'rgba(212, 175, 55, 0.05)',
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(212, 175, 55, 0.15)',
         marginBottom: 24,
     },
+    infoHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 8,
+    },
+    infoTitle: {
+        color: Colors.primary,
+        fontSize: 12,
+        fontFamily: 'PoppinsBold',
+        letterSpacing: 0.5,
+        textTransform: 'uppercase',
+    },
+    infoDesc: {
+        color: Colors.textMuted,
+        fontSize: 13,
+        fontFamily: 'InterRegular',
+        lineHeight: 20,
+    },
+    highlight: {
+        color: Colors.text,
+        fontFamily: 'PoppinsSemiBold',
+    },
+
     optionsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24, gap: 12 },
     optionBtn: {
         flex: 1,

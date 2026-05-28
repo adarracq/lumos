@@ -1,8 +1,13 @@
 // src/store/useUIStore.ts
 import { create } from 'zustand';
 
-export type ToolModalId = 'breathing' | 'grounding' | 'reframer' | 'boredom' | 'dojo' | 'filter' | 'approach' | 'bodyLang' | 'social' | 'focusSession' | 'bisou' | 'flow' | 'antidote' | 'fearSetting' | 'vault' | null;
-
+export type ToolModalId =
+    | 'breathing' | 'grounding' | 'reframer' | 'boredom' | 'brainDump'
+    | 'dojo' | 'filter' | 'approach' | 'bodyLang' | 'social'
+    | 'focusSession' | 'bisou' | 'flow' | 'antidote' | 'fearSetting' | 'futureSelf' | 'microSteps'
+    | 'vault'
+    | 'stroop' | 'memoryMatrix' | 'nback' | 'mathRush' | 'logicPath' | 'schulte' | 'targetTracker' | 'wordCascade' | 'nameRecall'
+    | null;
 interface UIState {
     isQuickActionVisible: boolean;
     setQuickActionVisible: (val: boolean) => void;

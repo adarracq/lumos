@@ -1,3 +1,4 @@
+import { useUserStore } from '@/src/store/useUserStore';
 import { Anchor, CheckCircle2, Coffee, Eye, Hand, Headphones } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -21,6 +22,7 @@ const STEPS = [
 
 export const GroundingModal = ({ isVisible, onClose }: GroundingModalProps) => {
     const [currentStep, setCurrentStep] = useState(0);
+    const trackToolUsage = useUserStore(state => state.trackToolUsage);
 
     const handleNext = () => {
         if (currentStep < STEPS.length) {
@@ -30,6 +32,7 @@ export const GroundingModal = ({ isVisible, onClose }: GroundingModalProps) => {
 
     const handleResetAndClose = () => {
         setCurrentStep(0);
+        trackToolUsage('grounding');
         onClose();
     };
 
@@ -42,7 +45,7 @@ export const GroundingModal = ({ isVisible, onClose }: GroundingModalProps) => {
         <BaseBottomSheetModal
             isVisible={isVisible}
             onClose={onClose}
-            title="Ancrage Sensoriel"
+            title="Stress & Angoisse"
         >
 
             {isFinished ? (

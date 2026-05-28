@@ -1,3 +1,4 @@
+// src/screens/habits/components/HabitItem.tsx
 import { Colors } from '@/src/constants/Colors';
 import { Habit } from '@/src/models/Habit';
 import { feedbackService } from '@/src/services/feedbackService';
@@ -12,13 +13,14 @@ interface HabitItemProps {
     currentValue: boolean | number;
     onToggle: () => void;
     onProgress: (amount: number) => void;
-    onEdit: () => void; // 💡 On remplace onDelete par onEdit
+    onEdit: () => void;
     onStartTimer?: () => void;
     logs: Record<string, Record<string, boolean | number>>;
     logicalTodayKey: string;
+    selectedDateKey: string; // 💡 Ajouté pour savoir quel jour est regardé
 }
 
-export const HabitItem = ({ habit, currentValue, onToggle, onProgress, onEdit, onStartTimer, logs, logicalTodayKey }: HabitItemProps) => {
+export const HabitItem = ({ habit, currentValue, onToggle, onProgress, onEdit, onStartTimer, logs, logicalTodayKey, selectedDateKey }: HabitItemProps) => {
     let isCompleted = false;
     let displayValue = "";
 
@@ -37,7 +39,6 @@ export const HabitItem = ({ habit, currentValue, onToggle, onProgress, onEdit, o
     const containerBorderColor = isCompleted ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.08)';
     const bgColor = isCompleted ? 'rgba(20, 20, 20, 0.4)' : 'rgba(30, 30, 30, 0.5)';
 
-    // 💡 Nouveau LongPress
     const handleLongPress = () => {
         feedbackService.medium();
         onEdit();
@@ -83,6 +84,7 @@ export const HabitItem = ({ habit, currentValue, onToggle, onProgress, onEdit, o
                 }
             }
 
+            const isDaySelected = dateStr === selectedDateKey; // 💡 On met en évidence le jour sélectionné
             const isDayToday = i === 0;
 
             blocks.push(
@@ -93,8 +95,8 @@ export const HabitItem = ({ habit, currentValue, onToggle, onProgress, onEdit, o
                         {
                             backgroundColor: habitThemeColor,
                             opacity: opacity,
-                            borderWidth: isDayToday ? 1 : 0,
-                            borderColor: isDayToday ? 'rgba(255,255,255,0.8)' : 'transparent'
+                            borderWidth: isDaySelected ? 1.5 : (isDayToday ? 1 : 0),
+                            borderColor: isDaySelected ? Colors.text : (isDayToday ? 'rgba(255,255,255,0.3)' : 'transparent')
                         }
                     ]}
                 />
@@ -144,40 +146,15 @@ export const HabitItem = ({ habit, currentValue, onToggle, onProgress, onEdit, o
 };
 
 const styles = StyleSheet.create({
-    glassCardContainer: {
-        borderRadius: 20, // Plus arrondi
-        marginBottom: 14,
-        borderWidth: 1,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 15,
-        elevation: 4,
-        paddingVertical: 14,
-        paddingHorizontal: 16
-    },
+    glassCardContainer: { borderRadius: 20, marginBottom: 14, borderWidth: 1, paddingVertical: 14, paddingHorizontal: 16 },
     mainRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     leftPart: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 10 },
-
-    // L'icône a maintenant son propre petit fond en verre
     iconWrapper: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 14 },
-
     habitName: { fontSize: 15, fontFamily: 'PoppinsSemiBold', letterSpacing: 0.3 },
     habitNameCompleted: { textDecorationLine: 'line-through', fontFamily: 'InterRegular', opacity: 0.6 },
     valueSubText: { color: Colors.textMuted, fontSize: 12, fontFamily: 'PoppinsSemiBold', marginTop: 0 },
-
     rightPart: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-
-    actionCircle: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        borderWidth: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.02)'
-    },
-
+    actionCircle: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.02)' },
     historyContainer: { flexDirection: 'row', gap: 5, alignItems: 'center' },
     historySquare: { width: 14, height: 14, borderRadius: 4 }
 });
